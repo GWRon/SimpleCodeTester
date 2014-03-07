@@ -213,7 +213,9 @@ Type TPipeStreamUTF8 Extends TStream
 	Method ReadLine:String()
 		If ReadAvailable()
 			Local buf:Short[1024], i:Int
-			While Not Eof()
+			'somehow "Eof()" returns False albeit there is nothing
+			'to read - that is why we check ReadAvailable() too
+			While Not Eof() and ReadAvailable()
 				Local n:Int = ReadChar()
 				If n =  0 then Exit
 				If n = 10 then Exit
@@ -222,7 +224,7 @@ Type TPipeStreamUTF8 Extends TStream
 				buf[i] = n
 				i:+1
 			Wend
-			Return String.FromShorts(buf , i)
+			Return String.FromShorts(buf, i)
 		EndIf
 		Return ""
 	End Method
