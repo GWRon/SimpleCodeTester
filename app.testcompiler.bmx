@@ -89,4 +89,30 @@ Type TTestCompiler extends TTestBase
 		return usecommandURI + " " + GetParams()
 	End Method
 
+
+	'override Validation to execute the resulting binary
+	'if validation is needed
+	Method Validate:int()
+		if not doValidation then return TRUE
+
+		local binaryProcess:TCodeTesterProcess = new TCodeTesterProcess.Init( GetOutputFileURI() )
+		local binaryOutput:string = ""
+		while binaryProcess.Alive()
+			if binaryProcess.IOAvailable()
+				'add new line indicator for followup lines
+				if binaryOutput <> "" then binaryOutput:+"~n"
+				binaryOutput :+ binaryProcess.Read()
+			endif
+		Wend
+
+		'print "expected: -"+expectedOutput+"-"
+		'print "received: -"+binaryOutput+"-"
+		if expectedOutput = binaryOutput
+			print "  VALIDATION SUCCESSFUL"
+			return TRUE
+		else
+			print "  VALIDATION FAILED"
+			return FALSE
+		endif
+	End Method
 End Type

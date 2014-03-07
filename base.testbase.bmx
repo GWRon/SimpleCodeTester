@@ -22,11 +22,11 @@ Type TTestBase
 	Field config:TConfigMap = new TConfigMap
 
 	Field receivedOutput:string = ""
-	Field desiredOutput:string = ""
+	Field expectedOutput:string = ""
 	Field result:int = 0
 	'one might skip validation of output
 	'eg. only check if execution was possible
-	Field doValidation:int = TRUE
+	Field doValidation:int = FALSE
 
 	Const RESULT_OK:int = 1
 	Const RESULT_FAILED:int = 0
@@ -53,10 +53,27 @@ Type TTestBase
 
 
 	'set what result is expected
-	Method SetDesiredOutput:int(output:string="")
-		desiredOutput = output
+	Method SetExpectedOutput:int(output:string="")
+		expectedOutput = output
+
+		'force validation
+		doValidation = TRUE
 	End Method
 
+
+
+	Method LoadExpectedOutput:int(fileURI:string)
+		local file:TStream = readfile(fileURI)
+		if not file then return FALSE
+
+		local content:string = ""
+		While not Eof(file)
+			content :+ readline(file)
+		Wend
+		SetExpectedOutput(content)
+
+		return TRUE
+	End Method
 
 	'overrideable method to do additional processing
 	'of the received output (eg. to parse for certain messages)
@@ -77,7 +94,9 @@ Type TTestBase
 		if not doValidation then return TRUE
 		'by default we just check if the output corresponds
 		'to one we defined before
-		return desiredOutput = receivedOutput
+		print "expected: -"+expectedOutput+"-"
+		print "received: -"+receivedOutput+"-"
+		return expectedOutput = receivedOutput
 	End Method
 
 

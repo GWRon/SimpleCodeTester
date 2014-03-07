@@ -81,10 +81,10 @@ Type TTestManager
 		local test:TTestCompiler
 		for local testFile:string = eachin testFiles
 			test = new TTestCompiler.Init(testFile).SetCompileFile(testFile)
-			test.doValidation = FALSE
-
+			'try to load the expected result file
+			test.LoadExpectedOutput( StripExt(testFile) + ".res" )
 			'try to find a configuration for this test
-			test.config = GetInheritedConfig(StripAll(testFile)+".conf", directory, ExtractDir(testFile))
+			test.config = GetInheritedConfig( StripAll(testFile) + ".conf", directory, ExtractDir(testFile) )
 
 			AddTest(test)
 		Next
