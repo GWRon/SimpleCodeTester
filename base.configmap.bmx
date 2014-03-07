@@ -36,8 +36,24 @@ Type TConfigMap
 		for local key:string = eachin values.Keys()
 			copyObj.Add(key, Get(key))
 		Next
+		return copyObj
 	End Method
 
+
+	'create a merged configMap of all given configurations (eg. base + extension)
+	Function CreateMerged:TConfigMap(configs:TConfigMap[])
+		if configs.length = 0 then return null
+		local result:TConfigMap = configs[0].copy()
+
+		for local i:int = 1 to configs.length-1
+			'overwrite values or add new if not existing
+			for local key:string = eachin configs[i].values.Keys()
+				local value:object = configs[i].Get(key)
+				if value then result.Add(key, value)
+			Next
+		Next
+		return result
+	End Function
 
 	'try to load the configuration from a file
 	Method LoadFromFile:int(fileUri:string)
