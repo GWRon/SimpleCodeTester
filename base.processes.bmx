@@ -1,7 +1,12 @@
-'===== PROCESS HANDLING TYPES =====
-'These types allow handling of executed processes and fetching
-'their output strings.
+REM
+	===========================================================
+	PROCESS HANDLING CLASSES
+	===========================================================
 
+	These types allow handling of executed processes and fetching
+	their output strings.
+
+ENDREM
 SuperStrict
 Import pub.freeprocess	'required for process handling
 

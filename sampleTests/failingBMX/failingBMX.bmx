@@ -1,0 +1,3 @@
+superStrict
+
+IamAnUknownCommand("hehe")

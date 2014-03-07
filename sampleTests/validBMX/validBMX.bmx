@@ -1,0 +1,3 @@
+superStrict
+
+print "TEST OK"
