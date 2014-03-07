@@ -8,7 +8,7 @@ REM
 
 ENDREM
 SuperStrict
-
+Import BRL.Map
 
 Type TDirectoryTree
 	Field directories:TMap            = CreateMap()
