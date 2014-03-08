@@ -1,4 +1,4 @@
-REM
+Rem
 	===========================================================
 	DIRECTORY SCANNING CLASS
 	===========================================================
@@ -9,6 +9,8 @@ REM
 ENDREM
 SuperStrict
 Import BRL.Map
+Import BRL.LinkedList
+Import BRL.FileSystem
 
 Type TDirectoryTree
 	Field directories:TMap            = CreateMap()
@@ -23,53 +25,53 @@ Type TDirectoryTree
 
 
 	'initialize object
-	Method Init:TDirectoryTree( baseDirectory:string, includeFileEndings:string[] = null, excludeFileEndings:string[] = null, includeDirectoryNames:string[] = null, excludeDirectoryNames:string[] = null )
-		if includeFileEndings then AddIncludeFileEndings(includeFileEndings)
-		if excludeFileEndings then AddExcludeFileEndings(excludeFileEndings)
-		if includeDirectoryNames then AddIncludeDirectoryNames(includeDirectoryNames)
-		if excludeDirectoryNames then AddExcludeDirectoryNames(excludeDirectoryNames)
+	Method Init:TDirectoryTree( baseDirectory:String, includeFileEndings:String[] = Null, excludeFileEndings:String[] = Null, includeDirectoryNames:String[] = Null, excludeDirectoryNames:String[] = Null )
+		If includeFileEndings Then AddIncludeFileEndings(includeFileEndings)
+		If excludeFileEndings Then AddExcludeFileEndings(excludeFileEndings)
+		If includeDirectoryNames Then AddIncludeDirectoryNames(includeDirectoryNames)
+		If excludeDirectoryNames Then AddExcludeDirectoryNames(excludeDirectoryNames)
 
-		self.baseDirectory = baseDirectory
+		Self.baseDirectory = baseDirectory
 
-		return self
+		Return Self
 	End Method
 
 
 	'add a file ending to the list of allowed file endings
-	Method AddIncludeFileEndings( endings:string[], resetFirst:int = FALSE )
-		if resetFirst then _includeFileEndings.Clear()
+	Method AddIncludeFileEndings( endings:String[], resetFirst:Int = False )
+		If resetFirst Then _includeFileEndings.Clear()
 
-		for local ending:string = eachin endings
+		For Local ending:String = EachIn endings
 			_includeFileEndings.AddLast(ending.toLower())
 		Next
 	End Method
 
 
 	'add a file ending to the list of forbidden file endings
-	Method AddExcludeFileEndings( endings:string[], resetFirst:int = FALSE )
-		if resetFirst then _excludeFileEndings.Clear()
+	Method AddExcludeFileEndings( endings:String[], resetFirst:Int = False )
+		If resetFirst Then _excludeFileEndings.Clear()
 
-		for local ending:string = eachin endings
+		For Local ending:String = EachIn endings
 			_excludeFileEndings.AddLast(ending.toLower())
 		Next
 	End Method
 
 
 	'add a directory name to the list of allowed directories
-	Method AddIncludeDirectoryNames( dirNames:string[], resetFirst:int = FALSE )
-		if resetFirst then _includeDirectoryNames.Clear()
+	Method AddIncludeDirectoryNames( dirNames:String[], resetFirst:Int = False )
+		If resetFirst Then _includeDirectoryNames.Clear()
 
-		for local dirName:string = eachin dirNames
+		For Local dirName:String = EachIn dirNames
 			_includeDirectoryNames.AddLast(dirName.toLower())
 		Next
 	End Method
 
 
 	'add a directory to the list of forbidden directories
-	Method AddExcludeDirectoryNames( dirNames:string[], resetFirst:int = FALSE )
-		if resetFirst then _excludeDirectoryNames.Clear()
+	Method AddExcludeDirectoryNames( dirNames:String[], resetFirst:Int = False )
+		If resetFirst Then _excludeDirectoryNames.Clear()
 
-		for local dirName:string = eachin dirNames
+		For Local dirName:String = EachIn dirNames
 			_excludeDirectoryNames.AddLast(dirName.toLower())
 		Next
 	End Method
@@ -79,59 +81,59 @@ Type TDirectoryTree
 	'directory.
 	'if no file ending is added until scanning, all files
 	'will get added
-	Method ScanDir:int( directory:string="" )
-		if directory = "" then directory = baseDirectory
+	Method ScanDir:Int( directory:String="" )
+		If directory = "" Then directory = baseDirectory
 
-		local dirHandle:int = ReadDir(directory)
-		If Not dirHandle then return FALSE
+		Local dirHandle:Int = ReadDir(directory)
+		If Not dirHandle Then Return False
 
 
-		local file:string
-		local uri:string
+		Local file:String
+		Local uri:String
 		Repeat
 			file = NextFile(dirHandle)
-			If file = "" then Exit
+			If file = "" Then Exit
 			'skip chgDir-entries
-			If file = ".." or file = "." then continue
+			If file = ".." Or file = "." Then Continue
 
 			uri = directory + "/" + file
 
 			Select FileType(uri)
-				case 1
+				Case 1
 					'skip forbidden file names
-					if _excludeFileEndings.Contains( ExtractExt(file).toLower() ) then continue
+					If _excludeFileEndings.Contains( ExtractExt(file).toLower() ) Then Continue
 					'skip files with non-enabled file endings
-					if not _includeFileEndings.Contains( ExtractExt(file).toLower() ) and not _includeFileEndings.Contains("*") then continue
+					If Not _includeFileEndings.Contains( ExtractExt(file).toLower() ) And Not _includeFileEndings.Contains("*") Then Continue
 
 					filePaths.insert(uri, file)
-				case 2
+				Case 2
 					'skip forbidden directories
-					if _excludeDirectoryNames.Contains( file.toLower() ) then continue
+					If _excludeDirectoryNames.Contains( file.toLower() ) Then Continue
 					'skip directories with non-enabled directory names
-					if not _includeDirectoryNames.Contains( file.toLower() ) and not _includeDirectoryNames.Contains("*") then continue
+					If Not _includeDirectoryNames.Contains( file.toLower() ) And Not _includeDirectoryNames.Contains("*") Then Continue
 
 					directories.insert(uri, file)
 					ScanDir(uri)
 			End Select
 		Forever
 
-		return TRUE
+		Return True
 	End Method
 
 
 	'returns all found files for a given filter
-	Method GetFiles:string[](fileName:string="", fileEnding:string="", URIstartsWith:string="")
-		local result:string[]
-		for local uri:string = eachin filePaths.Keys()
+	Method GetFiles:String[](fileName:String="", fileEnding:String="", URIstartsWith:String="")
+		Local result:String[]
+		For Local uri:String = EachIn filePaths.Keys()
 			'skip files with wrong filename - case sensitive
-			if fileName <> "" and StripDir(uri) <> fileName then continue
+			If fileName <> "" And StripDir(uri) <> fileName Then Continue
 			'skip uris not starting with given filter
-			if URIstartsWith <> "" and not uri.StartsWith(URIstartsWith) then continue
+			If URIstartsWith <> "" And Not uri.StartsWith(URIstartsWith) Then Continue
 			'skip uris having the wrong file ending - case INsensitive
-			if fileEnding <> "" and ExtractExt(uri).toLower() <> fileEnding.toLower() then continue
+			If fileEnding <> "" And ExtractExt(uri).toLower() <> fileEnding.toLower() Then Continue
 
 			result :+ [uri]
 		Next
-		return result
+		Return result
 	End Method
 End Type

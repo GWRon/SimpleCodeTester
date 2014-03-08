@@ -1,4 +1,4 @@
-REM
+Rem
 	===========================================================
 	PROCESS HANDLING CLASSES
 	===========================================================
@@ -23,26 +23,26 @@ Type TCodeTesterProcess
 	Field runAfterwards:TCodeTesterProcess
 
 
-	Method Init:TCodeTesterProcess( name:string, flags:Int = 0, runNow:Int=True )
+	Method Init:TCodeTesterProcess( name:String, flags:Int = 0, runNow:Int=True )
 ?MacOS
-		If FileType(name)=2
-			Local a:string = StripExt( StripDir(name) )
-			name:+"/Contents/MacOS/"+a
+		If FileType(name+".app")=FILETYPE_DIR
+			Local a:String = StripExt( StripDir(name) )
+			name:+".app/Contents/MacOS/"+a
 		EndIf
 ?
-		self.flags = flags
-		self.name = name
+		Self.flags = flags
+		Self.name = name
 
 		FlushZombies()
 
 		If runNow Then RunProcess()
-		Return self
+		Return Self
 	End Method
 
 
 	Method Alive:Int()
 		If handle
-			If fdProcessStatus(handle) then Return True
+			If fdProcessStatus(handle) Then Return True
 			handle = 0
 		EndIf
 		If waitingSince = 0 Then waitingSince = MilliSecs()
@@ -51,25 +51,25 @@ Type TCodeTesterProcess
 
 
 	Method IOAvailable:Int()
-		Return StandardIOAvailable() or ErrorIOAvailable()
+		Return StandardIOAvailable() Or ErrorIOAvailable()
 	End Method
 
 
 	Method Read:String()
-		local result:string = ""
-		if result="" then result = ReadErrorIO()
-		if result="" then result = ReadStandardIO()
-		return result
+		Local result:String = ""
+		If result="" Then result = ReadErrorIO()
+		If result="" Then result = ReadStandardIO()
+		Return result
 	End Method
 
 
 	Method ReadStandardIO:String()
-		If StandardIOAvailable() then Return standardIO.ReadLine().Replace("~r","").Replace("~n","")
+		If StandardIOAvailable() Then Return standardIO.ReadLine().Replace("~r","").Replace("~n","")
 	End Method
 
 
 	Method ReadErrorIO:String()
-		If ErrorIOAvailable() then Return errorIO.ReadLine().Replace("~r","").Replace("~n","")
+		If ErrorIOAvailable() Then Return errorIO.ReadLine().Replace("~r","").Replace("~n","")
 	End Method
 
 
@@ -87,15 +87,15 @@ Type TCodeTesterProcess
 		If standardIO
 			standardIO.Close()
 			standardIO = Null
-		endif
+		EndIf
 		If errorIO
 			errorIO.Close()
 			errorIO = Null
-		endif
+		EndIf
 
 		terminate()
 
-		If runAfterwards then runAfterwards.RunProcess()
+		If runAfterwards Then runAfterwards.RunProcess()
 	End Method
 
 
@@ -113,7 +113,7 @@ Type TCodeTesterProcess
 		Local infd:Int, outfd:Int, errfd:Int
 
 		handle = fdProcess(name, Varptr infd, Varptr outfd, Varptr errfd, flags)
-		If Not handle then Return Null
+		If Not handle Then Return Null
 
 		standardIO = TPipeStreamUTF8.Create(infd, outfd)
 		errorIO = TPipeStreamUTF8.Create(errfd, outfd)
@@ -126,16 +126,16 @@ Type TCodeTesterProcess
 	Function FlushZombies()
 		Local aliveList:TList = CreateList()
 		For Local p:TCodeTesterProcess = EachIn processes
-			If p.Alive() then aliveList.AddLast p
+			If p.Alive() Then aliveList.AddLast p
 		Next
 		processes = aliveList
 	End Function
 
 
 	Method Eof:Int()
-		If Alive() then Return False
-		If StandardIOAvailable() then return False
-		If ErrorIOAvailable() then return False
+		If Alive() Then Return False
+		If StandardIOAvailable() Then Return False
+		If ErrorIOAvailable() Then Return False
 		Return True
 	End Method
 
@@ -189,7 +189,7 @@ Type TPipeStreamUTF8 Extends TStream
 
 
 	Method ReadPipe:Byte[]()
-		local n:Int = ReadAvailable()
+		Local n:Int = ReadAvailable()
 		If n
 			Local bytes:Byte[] = New Byte[n]
 			Read(bytes, n)
@@ -207,11 +207,11 @@ Type TPipeStreamUTF8 Extends TStream
 
 	Method ReadChar:Int()
 		Local c:Int = _ReadByte()
-		If c < 128 then Return c
+		If c < 128 Then Return c
 		Local d:Int = _ReadByte()
-		If c < 224 then Return (c-192)*64 + (d-128)
+		If c < 224 Then Return (c-192)*64 + (d-128)
 		Local e:Int = _ReadByte()
-		If c < 240 then Return (c-224)*4096 + (d-128)*64 + (e-128)
+		If c < 240 Then Return (c-224)*4096 + (d-128)*64 + (e-128)
 	End Method
 
 
@@ -220,12 +220,12 @@ Type TPipeStreamUTF8 Extends TStream
 			Local buf:Short[1024], i:Int
 			'somehow "Eof()" returns False albeit there is nothing
 			'to read - that is why we check ReadAvailable() too
-			While Not Eof() and ReadAvailable()
+			While Not Eof() And ReadAvailable()
 				Local n:Int = ReadChar()
-				If n =  0 then Exit
-				If n = 10 then Exit
-				If n = 13 then Continue
-				If buf.length = i then buf = buf[..i+1024]
+				If n =  0 Then Exit
+				If n = 10 Then Exit
+				If n = 13 Then Continue
+				If buf.length = i Then buf = buf[..i+1024]
 				buf[i] = n
 				i:+1
 			Wend

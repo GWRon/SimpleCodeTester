@@ -1,9 +1,9 @@
 SuperStrict
 
-Framework brl.retro
+Framework brl.standardio
 Import "app.testmanager.bmx"
 
-REM
+Rem
 	Readme:
 
 	Each test can be located somewhere within the given directory.
@@ -25,12 +25,13 @@ REM
 
 	Each configuration file inherits the configuration of a parent
 	folder's "base.conf" (which also inherits from its parent).
-END REM
+End Rem
 
 
 
 'adjust compiler path for this test class
-TTestCompiler.SetCompilerURI("/home/ronny/Arbeit/Programmieren/BlitzMax/bin/bmk")
+TTestCompiler.baseConfig.Add("bmk_path", "/home/ronny/Arbeit/Programmieren/BlitzMax/bin/bmk")
+
 'adjust base config for all instances of that type
 TTestCompiler.baseConfig.Add("app_type", "console")
 TTestCompiler.baseConfig.Add("app_arch", "x86") 'unused yet
@@ -39,6 +40,5 @@ TTestCompiler.baseConfig.Add("threaded", "0")
 TTestCompiler.baseConfig.Add("deleteBinaries", "1") 'delete binaries afterwards
 TTestCompiler.baseConfig.fileUri = "baseConfig"
 
-global testManager:TTestManager = new TTestManager.Init()
-testManager.AddTestsFromDirectory("sampleTests")
+Global testManager:TTestManager = New TTestManager.Init(AppArgs[1..])
 testManager.RunTests()
