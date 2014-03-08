@@ -1,4 +1,4 @@
-REM
+Rem
 	===========================================================
 	BASIC CONFIGURATION MAP
 	===========================================================
@@ -8,151 +8,151 @@ REM
 ENDREM
 SuperStrict
 Import BRL.Map
-
+Import BRL.FileSystem
 
 Type TConfigMap
 	Field values:TMap = CreateMap()
-	Field fileUri:string = ""
+	Field fileUri:String = ""
 
 
-	Method Init:TConfigMap( configFile:string="" )
-		if configFile <> "" then LoadFromFile(configFile)
+	Method Init:TConfigMap( configFile:String="" )
+		If configFile <> "" Then LoadFromFile(configFile)
 
-		return self
+		Return Self
 	End Method
 
 
 	'clear all key->value pairs
-	Method Reset:int()
+	Method Reset:Int()
 		values.Clear()
-		return TRUE
+		Return True
 	End Method
 
 
 	'create another configMap with the same values
 	Method Copy:TConfigMap()
-		local copyObj:TConfigMap = new TConfigMap
+		Local copyObj:TConfigMap = New TConfigMap
 
 		'copy values
-		for local key:string = eachin values.Keys()
+		For Local key:String = EachIn values.Keys()
 			copyObj.Add(key, Get(key))
 		Next
-		return copyObj
+		Return copyObj
 	End Method
 
 
 	'create a merged configMap of all given configurations (eg. base + extension)
-	Function CreateMerged:TConfigMap( configs:TConfigMap[], reversed:int = FALSE )
-		if configs.length = 0 then return null
+	Function CreateMerged:TConfigMap( configs:TConfigMap[], reversed:Int = False )
+		If configs.length = 0 Then Return Null
 
-		if reversed
-			local newConfigs:TConfigMap[]
-			for local i:int = 1 to configs.length
+		If reversed
+			Local newConfigs:TConfigMap[]
+			For Local i:Int = 1 To configs.length
 				newConfigs :+ [configs[configs.length - i]]
 			Next
 			configs = newConfigs
-		endif
+		EndIf
 
 
-		local result:TConfigMap = configs[0].copy()
-		for local i:int = 1 to configs.length-1
+		Local result:TConfigMap = configs[0].copy()
+		For Local i:Int = 1 To configs.length-1
 			'overwrite values or add new if not existing
-			for local key:string = eachin configs[i].values.Keys()
-				local value:object = configs[i].Get(key)
-				if value then result.Add(key, value)
+			For Local key:String = EachIn configs[i].values.Keys()
+				Local value:Object = configs[i].Get(key)
+				If value Then result.Add(key, value)
 			Next
 		Next
-		return result
+		Return result
 	End Function
 
 	'try to load the configuration from a file
-	Method LoadFromFile:int( fileUri:string )
+	Method LoadFromFile:Int( fileUri:String )
 		'skip resetting and loading if the file is not existing
-		if filesize(fileUri) < 0 then return FALSE
+		If FileSize(fileUri) < 0 Then Return False
 
-		self.fileUri = fileUri
+		Self.fileUri = fileUri
 
 		'remove old values
 		Reset()
 
-		local file:TStream = readfile(fileUri)
-		if not file
+		Local file:TStream = ReadFile(fileUri)
+		If Not file
 			'RuntimeError("ERROR: could not open file ~q"+fileUri+"~q for reading.")
-			print "ERROR: could not open file ~q"+fileUri+"~q for reading."
-			return FALSE
-		endif
+			Print "ERROR: could not open file ~q"+fileUri+"~q for reading."
+			Return False
+		EndIf
 
-		local line:string = ""
-		local splitPos:int = 0
-		local key:string, value:string
-		while not Eof(file)
-			line = readline(file)
+		Local line:String = ""
+		Local splitPos:Int = 0
+		Local key:String, value:String
+		While Not Eof(file)
+			line = ReadLine(file)
 
 			'skip #comments
-			if line.trim().Find("#") = 0 then continue
+			If line.Trim().Find("#") = 0 Then Continue
 
 			'find first "=" (later ones could come from arguments/params)
 			splitPos = line.Find("=")
 			'no splitter means no assignment
-			if splitPos < 0 then continue
+			If splitPos < 0 Then Continue
 
-			key = Left(line, splitPos).trim()
-			value = Mid(line, splitPos+2).trim()
+			key = line[..splitPos].Trim()
+			value = line[splitPos+1..].Trim()
 
 			Add(key, value)
-		wend
+		Wend
 
 		file.Close()
-		return TRUE
+		Return True
 	End Method
 
 
-	Method ToString:string()
-		local result:string = "TConfigMap"+"~n"
-		result :+ "-> file: "+self.fileUri+"~n"
+	Method ToString:String()
+		Local result:String = "TConfigMap"+"~n"
+		result :+ "-> file: "+Self.fileUri+"~n"
 		result :+ "-> keys:"+"~n"
-		for local key:string = eachin values.Keys()
-			result :+ "  -> "+key+" : "+string(values.ValueForKey(key))+"~n"
+		For Local key:String = EachIn values.Keys()
+			result :+ "  -> "+key+" : "+String(values.ValueForKey(key))+"~n"
 		Next
-		return result
+		Return result
 	End Method
 
 
-	Method Add:TConfigMap( key:string, data:object )
+	Method Add:TConfigMap( key:String, data:Object )
 		values.insert(key, data)
-		return self
+		Return Self
 	End Method
 
 
-	Method AddString:TConfigMap( key:string, data:string )
-		Add(key, object(data))
-		return self
+	Method AddString:TConfigMap( key:String, data:String )
+		Add(key, Object(data))
+		Return Self
 	End Method
 
 
-	Method AddNumber:TConfigMap( key:string, data:float )
-		Add( key, object( string(data) ) )
-		return self
+	Method AddNumber:TConfigMap( key:String, data:Float )
+		Add( key, Object( String(data) ) )
+		Return Self
 	End Method
 
 
-	Method Get:object( key:string, defaultValue:object=null )
-		local result:object = values.ValueForKey(key)
-		if result then return result
-		return defaultValue
+	Method Get:Object( key:String, defaultValue:Object=Null )
+		Local result:Object = values.ValueForKey(key)
+		If result Then Return result
+		Return defaultValue
 	End Method
 
 
-	Method GetString:string( key:string, defaultValue:string=null )
-		local result:object = Get(key)
-		if result then return String( result )
-		return defaultValue
+	Method GetString:String( key:String, defaultValue:String=Null )
+		Local result:Object = Get(key)
+		If result Then Return String( result )
+		Return defaultValue
 	End Method
 
 
-	Method GetInt:int( key:string, defaultValue:int = null )
-		local result:object = Get(key)
-		if result then return Int( float( String( result ) ) )
-		return defaultValue
+	Method GetInt:Int( key:String, defaultValue:Int = Null )
+		Local result:Object = Get(key)
+		If result Then Return Int( Float( String( result ) ) )
+		Return defaultValue
 	End Method
 End Type

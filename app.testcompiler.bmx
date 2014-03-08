@@ -1,4 +1,4 @@
-REM
+Rem
 	===========================================================
 	APP SPECIFIC COMPILER TEST CLASS
 	===========================================================
@@ -11,108 +11,131 @@ SuperStrict
 Import "base.testbase.bmx"
 Import "base.processes.bmx"
 
-Type TTestCompiler extends TTestBase
-	field compileFile:string = ""
+Type TTestCompiler Extends TTestBase
+	Field compileFile:String = ""
 
 	'the complete path (including filename)
-	global compilerUri:string = ""
-	global baseConfig:TConfigMap = new TConfigMap.Init()
+	Global compilerUri:String = ""
+	Global baseConfig:TConfigMap = New TConfigMap.Init()
 
 
-	Method Init:TTestCompiler( name:string="" )
-		super.Init(name)
+	Method Init:TTestCompiler( name:String="" )
+		Super.Init(name)
 
-		return self
+		Return Self
 	End Method
 
 
-	Method SetCompileFile:TTestCompiler( file:string )
+	Method SetCompileFile:TTestCompiler( file:String )
 		compileFile = file
-		return self
+		Return Self
 	End Method
 
 
-	Function SetCompilerURI:int( uri:string )
-		if fileSize(uri) = -1
-			print "ERROR: Compiler not found: ~q"+uri+"~q"
-			return FALSE
-		endif
+	Function SetCompilerURI:Int( uri:String )
+		If Not uri Or FileType(uri) = FILETYPE_NONE
+			Print "ERROR: Compiler not found: ~q"+uri+"~q"
+			Return False
+		EndIf
 
 		compilerUri = uri
+		Return True
 	End Function
 
 
 	'override cleanup to delete the binary afterwards
-	Method CleanUp:int()
-		if baseConfig.GetInt("deleteBinaries", 1) = true
-			return DeleteFile( GetOutputFileURI() )
-		else
-			return TRUE
-		endif
-	End Method
-
-
-	Method GetOutputFileURI:string()
-?Win32
-		return StripExt(compileFile)+".exe"
+	Method CleanUp:Int()
+		If baseConfig.GetInt("deleteBinaries", 1) = True
+?macos
+			If config.GetString("app_type", "console").toLower() = "console"
+				Return DeleteFile( GetOutputFileURI() )
+			Else
+				Return DeleteDir( GetOutputFileURI() + ".app", True )
+			End If
 ?
-		return StripExt(compileFile)
+			Return DeleteFile( GetOutputFileURI() )
+		Else
+			Return True
+		EndIf
 	End Method
 
 
-	Method GetParams:string()
-		local result:string = ""
+	Method GetOutputFileURI:String()
+?Win32
+		Return StripExt(compileFile)+".exe"
+?
+		Return StripExt(compileFile)
+	End Method
+
+
+	Method GetParams:String()
+		Local result:String = ""
 
 		'build flags
 		result :+ "makeapp"
 		result :+ " -a" 'recompile
 		result :+ " -t " + config.GetString("app_type", "console").toLower()
-		if config.GetInt("threaded", 0) = 1
+		If config.GetInt("threaded", 0) = 1
 			result :+ " -h"
-		endif
-		if config.GetInt("debug", 0) = 1
+		EndIf
+		If config.GetInt("debug", 0) = 1
 			result :+ " -d"
-		endif
+		Else
+			result :+ " -r"
+		EndIf
+		If config.GetString("app_arch", "")
+			result :+ " -g " + config.GetString("app_arch", "")
+		End If
 		'file
 		result :+ " -o " + GetOutputFileURI() + " " + compileFile
 
-		return result
+		Return result
 	End Method
 
 
 	'override generation of the commandline
-	Method GetCommandline:string()
+	Method GetCommandline:String()
+	
 		'try to use a instance specific URI, if none is given
 		'use the default type specific compiler URI
-		local useCommandURI:string = commandURI
-		if useCommandURI = "" then useCommandURI = compilerUri
-		return usecommandURI + " " + GetParams()
+		Local useCommandURI:String = commandURI
+
+		If useCommandURI = "" Then
+			If Not compilerUri
+				If Not SetCompilerURI(config.GetString("bmk_path", ""))
+					End
+				End If
+			End If
+			useCommandURI = compilerUri
+		End If
+		
+		Return usecommandURI + " " + GetParams()
 	End Method
 
 
 	'override Validation to execute the resulting binary
 	'if validation is needed
-	Method Validate:int()
-		if not doValidation then return TRUE
+	Method Validate:Int()
+		If Not doValidation Then Return True
 
-		local binaryProcess:TCodeTesterProcess = new TCodeTesterProcess.Init( GetOutputFileURI() )
-		local binaryOutput:string = ""
-		while binaryProcess.Alive()
-			if binaryProcess.IOAvailable()
+		Local binaryProcess:TCodeTesterProcess = New TCodeTesterProcess.Init( GetOutputFileURI() )
+		Local binaryOutput:String = ""
+		While binaryProcess.Alive()
+			If binaryProcess.IOAvailable()
 				'add new line indicator for followup lines
-				if binaryOutput <> "" then binaryOutput:+"~n"
+				If binaryOutput <> "" Then binaryOutput:+"~n"
 				binaryOutput :+ binaryProcess.Read()
-			endif
+			EndIf
 		Wend
 
 		'print "expected: -"+expectedOutput+"-"
 		'print "received: -"+binaryOutput+"-"
-		if expectedOutput = binaryOutput
-			print "  VALIDATION SUCCESSFUL"
-			return TRUE
-		else
-			print "  VALIDATION FAILED"
-			return FALSE
-		endif
+		If expectedOutput = binaryOutput
+			Print "  VALIDATION SUCCESSFUL"
+			Return True
+		Else
+			Print "  VALIDATION FAILED"
+			Return False
+		EndIf
 	End Method
 End Type
