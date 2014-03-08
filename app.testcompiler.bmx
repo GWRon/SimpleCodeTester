@@ -38,6 +38,20 @@ Type TTestCompiler Extends TTestBase
 			Return False
 		EndIf
 
+		' bmxpath is not set, we should try to set it to bmk's root path. (one up from bmk's bin path)
+		If Not baseConfig.GetString("bmxpath", "")
+			' bin dir
+			Local bmxpath:String = ExtractDir(uri)
+			' parent dir
+			bmxpath = bmxpath[..bmxpath.FindLast("/")]
+			
+			If FileType(bmxpath) = FILETYPE_DIR
+				baseConfig.Add("bmxpath", bmxpath)
+				putenv_("BMXPATH=" + bmxpath)
+			End If
+			
+		End If
+		
 		compilerUri = uri
 		Return True
 	End Function
