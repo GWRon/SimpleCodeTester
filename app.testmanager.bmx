@@ -152,6 +152,9 @@ Type TTestManager
 			End
 		End If
 		
+		' store real path of tests
+		TTestCompiler.baseConfig.Add("test_base", RealPath(args[0]))
+		
 		AddTestsFromDirectory(args[0])
 	End Method
 
