@@ -34,8 +34,23 @@ Type TTestCompiler Extends TTestBase
 
 	Function SetCompilerURI:Int( uri:String )
 		If Not uri Or FileType(uri) = FILETYPE_NONE
-			Print "ERROR: Compiler not found: ~q"+uri+"~q"
-			Return False
+	
+			If uri Then
+				' try real path
+				Local dir:String = CurrentDir()
+				ChangeDir baseConfig.GetString("test_base", "")
+				uri = RealPath(uri) 
+				ChangeDir dir
+
+				If Not FileType(uri)
+					Print "ERROR: Compiler not found: ~q"+uri+"~q"
+					Return False
+				End If
+			Else
+					Print "ERROR: Compiler was not defined in option 'bmk_path'"
+					Return False
+			End If
+			
 		EndIf
 
 		' bmxpath is not set, we should try to set it to bmk's root path. (one up from bmk's bin path)
