@@ -10,12 +10,15 @@ ENDREM
 SuperStrict
 Import "base.directorytree.bmx"
 Import "app.testcompiler.bmx" 'containing the compiler specific test class
+Import "app.testmodcompiler.bmx" 'containing the compiler specific test class
 
 Global SCT_VERSION:String = "0.1.0"
 
 Type TTestManager
 	Field tests:TList = CreateList()
 	Field dirTree:TDirectoryTree = New TDirectoryTree
+	
+	Field mods:TList = New TList
 
 
 	Method Init:TTestManager(args:String[])
@@ -93,9 +96,54 @@ Type TTestManager
 			AddTest(test)
 		Next
 	End Method
+	
+	Method BuildMods()
+
+		Print "=== STARTING MODULE BUILD ==="
+
+		If LoadMods()
+
+			Local config:TConfigMap = New TConfigMap.Init(TTestCompiler.baseConfig.GetString("test_base", "")+"/base.conf")
+			
+			For Local m:String = EachIn mods
+			
+				Local build:TTestModCompiler = New TTestModCompiler.Init(m).SetCompileFile(m)
+				build.config = config
+				
+				build.Run()
+			
+			Next
+
+		Else
+		
+			Print "* No modules to process *"
+		
+		End If	
+
+			Print "=== FINISHED MODULE BUILD ==="
+		
+	End Method
+	
+	Method LoadMods:Int()
+		Local file:TStream = ReadFile(TTestCompiler.baseConfig.GetString("test_base", "") + "/mods.conf")
+		If Not file Then Return False
+
+		While Not Eof(file)
+			Local line:String = ReadLine(file).Trim()
+			If line Then
+				mods.AddLast(line.ToLower())
+			End If
+		Wend
+		
+		Return mods.Count() > 0
+	End Method
 
 
 	Method RunTests:Int()
+		If TTestCompiler.baseConfig.GetInt("make_mods") Then
+			BuildMods()
+		End If
+	
 		Print "=== STARTING TESTS ==="
 		Print "* AMOUNT OF TESTS: " + tests.count()
 
@@ -140,6 +188,8 @@ Type TTestManager
 					ShowUsage()
 				Case "v"
 					ShowVersion()
+				Case "m"
+					TTestCompiler.baseConfig.Add("make_mods", "1")
 			End Select
 			
 			count:+ 1
@@ -159,7 +209,10 @@ Type TTestManager
 	End Method
 
 	Method ShowUsage()
-		Print "usage : sct [-h] [-v] dir"
+		Print "usage : sct [-h] [-v] [-m] dir"
+		Print "   -h    Show this help"
+		Print "   -v    Version information"
+		Print "   -m    Build modules first. Reads mods.conf for a list of mods to build."
 		End
 	End Method
 	

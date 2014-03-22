@@ -42,7 +42,10 @@ Type TTestBase
 	Method GetName:String()
 		Return name
 	End Method
-
+	
+	Method GetTestType:String()
+		Return "TEST"
+	End Method
 
 	'returns the complete commandline for process execution
 	'eg. "ls -l *.bat"
@@ -106,7 +109,7 @@ Type TTestBase
 
 
 	Method Run:Int()
-		Print "* RUNNING TEST: " + GetName()
+		Print "* RUNNING " + GetTestType() + ": " + GetName()
 
 		Print "  COMMAND: "+ GetCommandline()
 
