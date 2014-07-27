@@ -198,19 +198,12 @@ Type TPipeStreamUTF8 Extends TStream
 	End Method
 
 
-	Method _ReadByte:Int()
-		Local n:Byte
-		ReadBytes(Varptr n, 1)
-		Return n
-	End Method
-
-
 	Method ReadChar:Int()
-		Local c:Int = _ReadByte()
+		Local c:Int = ReadByte()
 		If c < 128 Then Return c
-		Local d:Int = _ReadByte()
+		Local d:Int = ReadByte()
 		If c < 224 Then Return (c-192)*64 + (d-128)
-		Local e:Int = _ReadByte()
+		Local e:Int = ReadByte()
 		If c < 240 Then Return (c-224)*4096 + (d-128)*64 + (e-128)
 	End Method
 
