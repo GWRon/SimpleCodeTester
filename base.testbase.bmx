@@ -1,4 +1,4 @@
-SuperStrict
+﻿SuperStrict
 Import "base.configmap.bmx"
 Import "base.processes.bmx"
 
@@ -27,6 +27,7 @@ Type TTestBase
 	'one might skip validation of output
 	'eg. only check if execution was possible
 	Field doValidation:Int = False
+	Field validated:Int = -1
 
 	Const RESULT_OK:Int = 1
 	Const RESULT_FAILED:Int = 0
@@ -35,6 +36,7 @@ Type TTestBase
 
 	Method Init:TTestBase(name:String="")
 		If name<>"" Then Self.name = name
+		validated = False
 		Return Self
 	End Method
 
@@ -43,9 +45,11 @@ Type TTestBase
 		Return name
 	End Method
 	
+	
 	Method GetTestType:String()
 		Return "TEST"
 	End Method
+
 
 	'returns the complete commandline for process execution
 	'eg. "ls -l *.bat"
@@ -64,7 +68,6 @@ Type TTestBase
 	End Method
 
 
-
 	Method LoadExpectedOutput:Int(fileURI:String)
 		Local file:TStream = ReadFile(fileURI)
 		If Not file Then Return False
@@ -81,6 +84,7 @@ Type TTestBase
 
 		Return True
 	End Method
+
 
 	'overrideable method to do additional processing
 	'of the received output (eg. to parse for certain messages)
@@ -104,15 +108,37 @@ Type TTestBase
 		'to one we defined before
 		Print "expected: -"+expectedOutput+"-"
 		Print "received: -"+receivedOutput+"-"
-		Return expectedOutput = receivedOutput
+		validated = (expectedOutput = receivedOutput)
+		Return validated
+	End Method
+
+
+	Method GetFormattedResult:String()
+		local text:string
+		text :+ "* RUNNING " + GetTestType() + ": " + GetName() + "~n"
+		text :+ "  COMMAND: "+ GetCommandline() + "~n"
+
+		If result = RESULT_ERROR
+			text :+ "  -> PROCESS FAILED !" + "~n"
+			text :+ "ERROR MESSAGE>>>" + "~n"
+			'output contains newline char already,skip adding it 
+			text :+ receivedOutput
+			text :+ "<<<" + "~n"
+		ElseIf result = RESULT_OK
+			text :+ "  -> OK" + "~n"
+		ElseIf result = RESULT_FAILED
+			If validated = False
+				text :+ "  -> VALIDATION FAILED" + "~n"
+			Else
+				text :+ "  -> FAILED" + "~n"
+			EndIf
+		EndIf
+
+		return text
 	End Method
 
 
 	Method Run:Int()
-		Print "* RUNNING " + GetTestType() + ": " + GetName()
-
-		Print "  COMMAND: "+ GetCommandline()
-
 		'start the process execution
 		process = New TCodeTesterProcess.Init( GetCommandline() )
 		receivedOutput = ""
@@ -122,19 +148,22 @@ Type TTestBase
 				'as soon as an error happens - set the result accordingly
 				If process.ErrorIOAvailable() Then result = RESULT_ERROR
 
+				'append output from process if not empty
+				'prepend a newline if needed
+				'last line does not contain newline then !
+				local processOutput:string = process.Read()
+				If processOutput <> ""
+					if receivedOutput <> "" receivedOutput :+ "~n"
+					receivedOutput:+ processOutput
+				endif
+
 				'add new line indicator for followup lines
-				If receivedOutput <> "" Then receivedOutput:+"~n"
-				receivedOutput :+ process.Read()
+				'If receivedOutput <> "" Then receivedOutput:+"~n"
+				'receivedOutput :+ process.Read()
 			EndIf
 		Wend
 
-		If result = RESULT_ERROR
-			Print "  -> PROCESS FAILED !"
-			Print "ERROR MESSAGE>>>"
-			Print receivedOutput
-			Print "<<<"
-			Return False
-		EndIf
+		If result = RESULT_ERROR then return False
 
 		'maybe someone wants to receive additional information from
 		'the received text
@@ -142,12 +171,6 @@ Type TTestBase
 
 		'run validation of the output
 		If Validate() Then result = RESULT_OK Else result = RESULT_FAILED
-
-		If result = RESULT_OK
-			Print "  -> OK"
-		ElseIf result = RESULT_FAILED
-			Print "  -> FAILED"
-		EndIf
 
 		'run cleanup - eg removing temporary files
 		CleanUp()

@@ -74,12 +74,12 @@ Type TCodeTesterProcess
 
 
 	Method StandardIOAvailable:Int()
-		Return standardIO.bufferpos Or standardIO.readAvailable()
+		Return standardIO.bufferpos Or standardIO.readAvail()
 	End Method
 
 
 	Method ErrorIOAvailable:Int()
-		Return errorIO.bufferpos Or errorIO.readAvailable()
+		Return errorIO.bufferpos Or errorIO.readAvail()
 	End Method
 
 
@@ -150,46 +150,9 @@ End Type
 
 
 
-Type TPipeStreamUTF8 Extends TStream
-	Field readBuffer:Byte[4096]
-	Field bufferPos:Int
-	Field readHandle:Int, writeHandle:Int
-
-
-	Method Close()
-		If readHandle
-			fdClose(readHandle)
-			readHandle = 0
-		EndIf
-		If writeHandle
-			fdClose(writeHandle)
-			writehandle = 0
-		EndIf
-	End Method
-
-
-	Method Read:Int( buffer:Byte Ptr, count:Int )
-		Return fdRead( readHandle, buffer, count )
-	End Method
-
-
-	Method Write:Int( buffer:Byte Ptr, count:Int )
-		Return fdWrite( writeHandle, buffer, count )
-	End Method
-
-
-	Method Flush()
-		fdFlush(writeHandle)
-	End Method
-
-
-	Method ReadAvailable:Int()
-		Return fdAvail(readHandle)
-	End Method
-
-
+Type TPipeStreamUTF8 Extends TPipeStream
 	Method ReadPipe:Byte[]()
-		Local n:Int = ReadAvailable()
+		Local n:Int = ReadAvail()
 		If n
 			Local bytes:Byte[] = New Byte[n]
 			Read(bytes, n)
@@ -198,6 +161,86 @@ Type TPipeStreamUTF8 Extends TStream
 	End Method
 
 
+	Method FillBuffer:int()
+		Local available:int = ReadAvail()
+		'fill buffer
+		If available
+			'calc unused buffer size
+			If bufferpos + available > 4096 then available = 4096 - bufferpos
+			If available <=0 then RuntimeError "TPipeStreamUTF8 FillBuffer Overflow"
+			'adjust buffer position
+			bufferpos :+ Read(Varptr readbuffer[bufferpos], available)
+		EndIf
+
+		return available > 0
+	End Method
+
+
+	Method ReadUTF8FromBuffer:string(bufferOffset:int, size:int)
+		local result:string = ""
+		local c:int, d:int, e:int
+
+		For local offset:int = bufferOffset To bufferOffset + size
+			c = readbuffer[offset]
+			
+			If c < 128
+				result :+ chr(c)
+				continue
+			EndIf
+
+			offset :+ 1
+			d = readbuffer[offset]
+			If c < 224
+				result :+ chr((c-192)*64 + (d-128) )
+				continue
+			EndIf
+
+			offset :+1
+			e = readbuffer[offset]
+			If c < 240
+				result :+ chr( (c-224)*4096 + (d-128)*64 + (e-128) ) + "Ä"
+				continue
+			EndIf
+		Next
+
+		return result
+	End Method
+	
+
+	Method ReadLine:String()
+		'fill read buffer with new data (if available)
+		FillBuffer()
+
+		Local p0:int, p1:int, line:string
+		'read in existing buffer
+		For local n:int = 0 To bufferpos
+			'newline character found?
+			'also generate a line if the buffer reached its end
+			If readbuffer[n] = 10 or n = bufferpos-1
+				p1 = n
+				p0 = 0
+				'skip double newlines (10,13)
+				if readbuffer[n] = 10
+					If (n>0) and readbuffer[n-1] = 13 then p1 = n - 1
+					If readbuffer[0] = 13 then p0 = 1
+				endif
+				
+				If p1 > p0
+					line = ReadUTF8FromBuffer(p0, p1-p0)
+					'line = String.FromBytes(Varptr readbuffer[p0], p1 - p0)
+				EndIf
+				'advance to next char
+				n:+1
+				bufferpos:-n
+
+				If bufferpos then MemMove(readbuffer, Varptr readbuffer[n], bufferpos)
+				Return line
+			EndIf
+		Next		
+	End Method
+
+
+rem
 	Method ReadChar:Int()
 		Local c:Int = ReadByte()
 		If c < 128 Then Return c
@@ -209,11 +252,11 @@ Type TPipeStreamUTF8 Extends TStream
 
 
 	Method ReadLine:String()
-		If ReadAvailable()
+		If ReadAvail()
 			Local buf:Short[1024], i:Int
 			'somehow "Eof()" returns False albeit there is nothing
-			'to read - that is why we check ReadAvailable() too
-			While Not Eof() And ReadAvailable()
+			'to read - that is why we check ReadAvail() too
+			While Not Eof() And ReadAvail()
 				Local n:Int = ReadChar()
 				If n =  0 Then Exit
 				If n = 10 Then Exit
@@ -226,7 +269,7 @@ Type TPipeStreamUTF8 Extends TStream
 		EndIf
 		Return ""
 	End Method
-
+end rem
 
 	Function Create:TPipeStreamUTF8( in:Int, out:Int )
 		Local stream:TPipeStreamUTF8 = New TPipeStreamUTF8

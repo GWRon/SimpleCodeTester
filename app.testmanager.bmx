@@ -11,11 +11,20 @@ SuperStrict
 Import "base.directorytree.bmx"
 Import "app.testcompiler.bmx" 'containing the compiler specific test class
 Import "app.testmodcompiler.bmx" 'containing the compiler specific test class
+?Threaded
+Import Brl.Threads
+?
+
 
 Global SCT_VERSION:String = "0.1.0"
 
 Type TTestManager
 	Field tests:TList = CreateList()
+?Threaded
+	Global testsDone:TList = CreateList()
+	'a lock for the done list
+	Global testsDoneMutex:TMutex = CreateMutex()
+?
 	Field dirTree:TDirectoryTree = New TDirectoryTree
 	
 	Field mods:TList = New TList
@@ -96,33 +105,28 @@ Type TTestManager
 			AddTest(test)
 		Next
 	End Method
+
 	
 	Method BuildMods()
 
 		Print "=== STARTING MODULE BUILD ==="
 
 		If LoadMods()
-
 			Local config:TConfigMap = New TConfigMap.Init(TTestCompiler.baseConfig.GetString("test_base", "")+"/base.conf")
 			
 			For Local m:String = EachIn mods
-			
 				Local build:TTestModCompiler = New TTestModCompiler.Init(m).SetCompileFile(m)
 				build.config = config
 				
 				build.Run()
-			
 			Next
-
 		Else
-		
 			Print "* No modules to process *"
-		
 		End If	
 
-			Print "=== FINISHED MODULE BUILD ==="
-		
+		Print "=== FINISHED MODULE BUILD ==="
 	End Method
+	
 	
 	Method LoadMods:Int()
 		Local file:TStream = ReadFile(TTestCompiler.baseConfig.GetString("test_base", "") + "/mods.conf")
@@ -137,9 +141,24 @@ Type TTestManager
 		
 		Return mods.Count() > 0
 	End Method
+	
 
+?Threaded
+	'helper function
+	Function RunTestThread:Object(testObject:object)
+		local test:TTestBase = TTestBase(testObject)
+		if not test then return null
+
+		test.Run()
+
+		LockMutex(testsDoneMutex)
+			testsDone.AddLast(test)
+		UnlockMutex(testsDoneMutex)
+	End Function
+?
 
 	Method RunTests:Int()
+		local start:int = Millisecs()
 		If TTestCompiler.baseConfig.GetInt("make_mods") Then
 			BuildMods()
 		End If
@@ -147,11 +166,74 @@ Type TTestManager
 		Print "=== STARTING TESTS ==="
 		Print "* AMOUNT OF TESTS: " + tests.count()
 
-		For Local test:TTestBase = EachIn tests
-			test.Run()
-		Next
+		?Threaded
+			'run up to 4 concurrent Threads
+			local maxThreads:int = 4
+			local threads:TThread[maxThreads]
+			local testsToRun:TList = CreateList()
+			'remove results from last test run (if any)
+			testsDone.clear()
+
+			'copy existing tests into a new list which can get
+			'truncated later
+			For Local test:TTestBase = Eachin tests
+				testsToRun.AddLast(test)
+			Next
+
+			'repeat as long as there are tests to do
+			local allDone:int = (testsToRun.Count() = 0)
+			while not allDone
+				If testsToRun.Count() > 0
+					local useSlot:int = -1
+					'find a free thread slot
+					For local i:int = 0 until maxThreads
+						if not threads[i] then useSlot = i;exit
+						if not ThreadRunning(threads[i]) then useSlot = i;exit
+					Next
+					'wait a short time and try again
+					If useSlot = -1
+						delay(1)
+						continue
+					EndIf
+
+					'kick off a new thread
+					local test:TTestBase = TTestBase(testsToRun.First())
+					testsToRun.RemoveFirst()
+					threads[useSlot] = CreateThread(RunTestThread, test)
+				EndIf
+
+				'adjust allDone to potentially finish the whileloop
+				allDone = (testsToRun.Count() = 0)
+
+				'check if there are no threads running anymore
+				For local i:int = 0 until maxThreads
+					if not threads[i] then continue
+					if ThreadRunning(threads[i]) then allDone = False
+				Next
+
+				'check if there is some output available
+				If testsDone.count() > 0
+					LockMutex(testsDoneMutex)
+						For local test:TTestBase = EachIn testsDone
+							print test.GetFormattedResult()
+						Next
+						testsDone.Clear()
+					UnlockMutex(testsDoneMutex)
+				EndIf
+
+				delay(1)
+			Wend
+			print "finished"
+			
+		?not Threaded
+			For Local test:TTestBase = EachIn tests
+				test.Run()
+				print test.GetFormattedResult()
+			Next
+		?
 
 		Print "=== FINISHED TESTS ==="
+		Print "* TIME: "+ (Millisecs() - start)+"ms"
 		Print "* FAILED: "+ GetResultCount(TTestBase.RESULT_FAILED)
 		Print "* ERROR: "+ GetResultCount(TTestBase.RESULT_ERROR)
 		Print "* OK: "+ GetResultCount(TTestBase.RESULT_OK)
@@ -166,6 +248,7 @@ Type TTestManager
 		Next
 		Return count
 	End Method
+
 	
 	Method ParseArgs(args:String[])
 	

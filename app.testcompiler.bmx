@@ -116,7 +116,8 @@ Type TTestCompiler Extends TTestBase
 			result :+ " -g " + config.GetString("app_arch", "")
 		End If
 		'file
-		result :+ " -o " + GetOutputFileURI() + " " + compileFile
+		'result :+ " -o " + GetOutputFileURI() + " " + compileFile
+		result :+ " -o ~q" + GetOutputFileURI() + "~q ~q" + compileFile+"~q"
 
 		Return result
 	End Method
@@ -151,19 +152,30 @@ Type TTestCompiler Extends TTestBase
 		Local binaryOutput:String = ""
 		While binaryProcess.Alive()
 			If binaryProcess.IOAvailable()
-				'add new line indicator for followup lines
-				If binaryOutput <> "" Then binaryOutput:+"~n"
-				binaryOutput :+ binaryProcess.Read()
+				'append output from process if not empty
+				'prepend a newline if needed
+				'last line does not contain newline then !
+				local out:string = binaryProcess.Read()
+				If out <> ""
+					if binaryOutput <> "" then binaryOutput :+ "~n"
+					binaryOutput :+ out
+				endif
+
+				'old: add new line indicator for followup lines
+				'If binaryOutput <> "" Then binaryOutput:+"~n"
+				'binaryOutput :+ binaryProcess.Read()
 			EndIf
 		Wend
 
 		'print "expected: -"+expectedOutput+"-"
 		'print "received: -"+binaryOutput+"-"
 		If expectedOutput = binaryOutput
-			Print "  VALIDATION SUCCESSFUL"
+			validated = True
+			'Print "  VALIDATION SUCCESSFUL"
 			Return True
 		Else
-			Print "  VALIDATION FAILED"
+			validated = False
+			'Print "  VALIDATION FAILED"
 			Return False
 		EndIf
 	End Method

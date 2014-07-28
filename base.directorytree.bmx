@@ -13,7 +13,7 @@ Import BRL.LinkedList
 Import BRL.FileSystem
 
 Type TDirectoryTree
-	Field directories:TMap            = CreateMap()
+	Field directories:TMap             = CreateMap()
 	Field filePaths:TMap               = CreateMap()
 	'root path of the scanned directory
 	Field baseDirectory:String         = ""
