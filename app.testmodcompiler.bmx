@@ -94,11 +94,19 @@ Type TTestModCompiler Extends TTestBase
 		EndIf
 		If config.GetString("app_arch", "")
 			result :+ " -g " + config.GetString("app_arch", "")
-		End If
+		EndIf
 		'file
 		result :+ " " + compileMod
 
 		Return result
+	End Method
+
+	'override to allow 
+	Method IsErrorLine:Int(line:string)
+		'this is no true error
+		If line.Find("ar: creating") >= 0 then return False
+
+		Return Super.IsErrorLine(line)
 	End Method
 
 
@@ -120,5 +128,9 @@ Type TTestModCompiler Extends TTestBase
 		
 		Return usecommandURI + " " + GetParams()
 	End Method
-	
+
+
+	Method Validate:Int()
+		return True
+	End Method
 End Type

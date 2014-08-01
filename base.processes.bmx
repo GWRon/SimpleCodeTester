@@ -16,8 +16,8 @@ Type TCodeTesterProcess
 
 	Field name:String
 	Field handle:Int
-	Field standardIO:TPipeStreamUTF8
-	Field errorIO:TPipeStreamUTF8
+	Field standardIO:TPipeStream
+	Field errorIO:TPipeStream
 	Field waitingSince:Int = 0
 	Field flags:Int = 0
 	Field runAfterwards:TCodeTesterProcess
@@ -115,8 +115,10 @@ Type TCodeTesterProcess
 		handle = fdProcess(name, Varptr infd, Varptr outfd, Varptr errfd, flags)
 		If Not handle Then Return Null
 
-		standardIO = TPipeStreamUTF8.Create(infd, outfd)
-		errorIO = TPipeStreamUTF8.Create(errfd, outfd)
+'		standardIO = TPipeStreamUTF8.Create(infd, outfd)
+'		errorIO = TPipeStreamUTF8.Create(errfd, outfd)
+		standardIO = TPipeStream.Create(infd, outfd)
+		errorIO = TPipeStream.Create(errfd, outfd)
 
 		processes.AddLast(Self)
 		Return Self

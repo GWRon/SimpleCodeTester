@@ -22,6 +22,7 @@ Type TTestBase
 	Field config:TConfigMap = New TConfigMap
 
 	Field receivedOutput:String = ""
+	Field receivedErrorOutput:String = ""
 	Field expectedOutput:String = ""
 	Field result:Int = 0
 	'one might skip validation of output
@@ -64,13 +65,13 @@ Type TTestBase
 		expectedOutput = output
 
 		'force validation
-		doValidation = True
+		if expectedOutput <> "" then doValidation = True
 	End Method
 
 
-	Method LoadExpectedOutput:Int(fileURI:String)
+	Function LoadExpectedOutput:String(fileURI:String)
 		Local file:TStream = ReadFile(fileURI)
-		If Not file Then Return False
+		If Not file Then Return ""
 
 		Local content:String = ""
 		While Not Eof(file)
@@ -80,10 +81,8 @@ Type TTestBase
 			content :+ ReadLine(file)
 		Wend
 
-		SetExpectedOutput(content)
-
-		Return True
-	End Method
+		return content
+	End Function
 
 
 	'overrideable method to do additional processing
@@ -113,16 +112,23 @@ Type TTestBase
 	End Method
 
 
-	Method GetFormattedResult:String()
+	Method GetFormattedHeader:String()
 		local text:string
 		text :+ "* RUNNING " + GetTestType() + ": " + GetName() + "~n"
-		text :+ "  COMMAND: "+ GetCommandline() + "~n"
+		text :+ "  COMMAND: "+ GetCommandline()
+		return text
+	End Method
+
+
+	Method GetFormattedResult:String()
+		local text:string
 
 		If result = RESULT_ERROR
 			text :+ "  -> PROCESS FAILED !" + "~n"
 			text :+ "ERROR MESSAGE>>>" + "~n"
 			'output contains newline char already,skip adding it 
-			text :+ receivedOutput
+			text :+ receivedErrorOutput
+'			text :+ receivedOutput
 			text :+ "<<<" + "~n"
 		ElseIf result = RESULT_OK
 			text :+ "  -> OK" + "~n"
@@ -138,6 +144,13 @@ Type TTestBase
 	End Method
 
 
+	'checks if the given string is an error
+	Method IsErrorLine:Int(line:string)
+		if line.Trim() = "" then return False
+		Return True
+	End Method
+
+
 	Method Run:Int()
 		'start the process execution
 		process = New TCodeTesterProcess.Init( GetCommandline() )
@@ -145,15 +158,31 @@ Type TTestBase
 
 		While process.Alive()
 			If process.IOAvailable()
-				'as soon as an error happens - set the result accordingly
-				If process.ErrorIOAvailable() Then result = RESULT_ERROR
-
 				'append output from process if not empty
 				'prepend a newline if needed
 				'last line does not contain newline then !
-				local processOutput:string = process.Read()
+				local processOutput:string
+
+				'as soon as an error happens - set the result accordingly
+				If process.ErrorIOAvailable()
+					local errorOutput:string = process.ReadErrorIO()
+					
+					If IsErrorLine(errorOutput)
+						processOutput :+ errorOutput
+
+						if receivedErrorOutput <> "" then receivedErrorOutput :+ "~n"
+						receivedErrorOutput :+ errorOutput
+
+						result = RESULT_ERROR
+					endif
+				EndIf
+
+				If process.StandardIOAvailable()
+					processOutput :+ process.ReadStandardIO()
+				EndIf
+
 				If processOutput <> ""
-					if receivedOutput <> "" receivedOutput :+ "~n"
+					if receivedOutput <> "" then receivedOutput :+ "~n"
 					receivedOutput:+ processOutput
 				endif
 

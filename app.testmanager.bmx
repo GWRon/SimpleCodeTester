@@ -97,7 +97,7 @@ Type TTestManager
 		For Local testFile:String = EachIn testFiles
 			test = New TTestCompiler.Init(testFile).SetCompileFile(testFile)
 			'try to load the expected result file
-			test.LoadExpectedOutput( StripExt(testFile) + ".res" )
+			test.SetExpectedOutput( test.LoadExpectedOutput(StripExt(testFile) + ".res") )
 
 			'try to find a configuration for this test
 			test.config = GetInheritedConfig( StripAll(testFile) + ".conf", directory, ExtractDir(testFile) )
@@ -117,8 +117,9 @@ Type TTestManager
 			For Local m:String = EachIn mods
 				Local build:TTestModCompiler = New TTestModCompiler.Init(m).SetCompileFile(m)
 				build.config = config
-				
+				print build.GetFormattedHeader()
 				build.Run()
+				print build.GetFormattedResult()
 			Next
 		Else
 			Print "* No modules to process *"
@@ -215,6 +216,7 @@ Type TTestManager
 				If testsDone.count() > 0
 					LockMutex(testsDoneMutex)
 						For local test:TTestBase = EachIn testsDone
+							print test.GetFormattedHeader()
 							print test.GetFormattedResult()
 						Next
 						testsDone.Clear()
@@ -227,6 +229,7 @@ Type TTestManager
 			
 		?not Threaded
 			For Local test:TTestBase = EachIn tests
+				print test.GetFormattedHeader()
 				test.Run()
 				print test.GetFormattedResult()
 			Next

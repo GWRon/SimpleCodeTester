@@ -167,8 +167,8 @@ Type TTestCompiler Extends TTestBase
 			EndIf
 		Wend
 
-		'print "expected: -"+expectedOutput+"-"
-		'print "received: -"+binaryOutput+"-"
+'		print "expected:~n-----~n"+expectedOutput+"~n------~n"
+'		print "received:~n-----~n"+binaryOutput+"~n------~n"
 		If expectedOutput = binaryOutput
 			validated = True
 			'Print "  VALIDATION SUCCESSFUL"
