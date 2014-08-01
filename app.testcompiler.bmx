@@ -156,10 +156,11 @@ Type TTestCompiler Extends TTestBase
 				'prepend a newline if needed
 				'last line does not contain newline then !
 				local out:string = binaryProcess.Read()
-				If out <> ""
+'do not ignore newlines - which somehow are triggered with out <> ""
+'				If out <> ""
 					if binaryOutput <> "" then binaryOutput :+ "~n"
 					binaryOutput :+ out
-				endif
+'				endif
 
 				'old: add new line indicator for followup lines
 				'If binaryOutput <> "" Then binaryOutput:+"~n"
@@ -167,13 +168,16 @@ Type TTestCompiler Extends TTestBase
 			EndIf
 		Wend
 
-'		print "expected:~n-----~n"+expectedOutput+"~n------~n"
-'		print "received:~n-----~n"+binaryOutput+"~n------~n"
 		If expectedOutput = binaryOutput
 			validated = True
 			'Print "  VALIDATION SUCCESSFUL"
 			Return True
 		Else
+
+			print "expected:~n-----~n"+expectedOutput+"~n------~n"
+			print "received:~n-----~n"+binaryOutput+"~n------~n"
+
+
 			validated = False
 			'Print "  VALIDATION FAILED"
 			Return False
