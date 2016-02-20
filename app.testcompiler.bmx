@@ -150,7 +150,7 @@ Type TTestCompiler Extends TTestBase
 
 		Local binaryProcess:TCodeTesterProcess = New TCodeTesterProcess.Init( GetOutputFileURI() )
 		Local binaryOutput:String = ""
-		While binaryProcess.Alive()
+		While not binaryProcess.Eof()
 			If binaryProcess.IOAvailable()
 				'append output from process if not empty
 				'prepend a newline if needed

@@ -18,7 +18,6 @@ Type TCodeTesterProcess
 	Field handle:Int
 	Field standardIO:TPipeStream
 	Field errorIO:TPipeStream
-	Field waitingSince:Int = 0
 	Field flags:Int = 0
 	Field runAfterwards:TCodeTesterProcess
 
@@ -45,7 +44,6 @@ Type TCodeTesterProcess
 			If fdProcessStatus(handle) Then Return True
 			handle = 0
 		EndIf
-		If waitingSince = 0 Then waitingSince = MilliSecs()
 		Return False
 	End Method
 
@@ -136,8 +134,7 @@ Type TCodeTesterProcess
 
 	Method Eof:Int()
 		If Alive() Then Return False
-		If StandardIOAvailable() Then Return False
-		If ErrorIOAvailable() Then Return False
+		If IOAvailable() Then Return False
 		Return True
 	End Method
 
