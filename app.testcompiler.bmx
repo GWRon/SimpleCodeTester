@@ -112,9 +112,12 @@ Type TTestCompiler Extends TTestBase
 		Else
 			result :+ " -r"
 		EndIf
+		If config.GetInt("quick", 0) = 1
+			result :+ " -quick"
+		EndIf
 		If config.GetString("app_arch", "")
 			result :+ " -g " + config.GetString("app_arch", "")
-		End If
+		EndIf
 		'file
 		'result :+ " -o " + GetOutputFileURI() + " " + compileFile
 		result :+ " -o ~q" + GetOutputFileURI() + "~q ~q" + compileFile+"~q"

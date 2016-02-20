@@ -39,6 +39,7 @@ TTestCompiler.baseConfig.Add("debug", "0")
 TTestCompiler.baseConfig.Add("threaded", "0")
 TTestCompiler.baseConfig.Add("deleteBinaries", "1") 'delete binaries afterwards
 TTestCompiler.baseConfig.Add("make_mods", "0") 
+TTestCompiler.baseConfig.Add("quick", "0") 
 TTestCompiler.baseConfig.fileUri = "baseConfig"
 
 Global testManager:TTestManager = New TTestManager.Init(AppArgs[1..])
