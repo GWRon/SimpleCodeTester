@@ -31,29 +31,31 @@ Type TTestModCompiler Extends TTestBase
 		Return Self
 	End Method
 
+
 	Method GetTestType:String()
 		Return "MODULE"
 	End Method
+	
 
 	Function SetCompilerURI:Int( uri:String )
-		If Not uri Or FileType(uri) = FILETYPE_NONE
-	
-			If uri Then
-				' try real path
-				Local dir:String = CurrentDir()
-				ChangeDir baseConfig.GetString("test_base", "")
-				uri = RealPath(uri) 
-				ChangeDir dir
+		If Not uri
+			Print "ERROR: Compiler was not defined in option 'bmk_path'"
+			Return False
+		EndIf
 
-				If Not FileType(uri)
-					Print "ERROR: Compiler not found: ~q"+uri+"~q"
-					Return False
-				End If
-			Else
-					Print "ERROR: Compiler was not defined in option 'bmk_path'"
-					Return False
+		If FileType(uri) = FILETYPE_NONE
+			' try real path
+			Local dir:String = CurrentDir()
+			ChangeDir baseConfig.GetString("test_base", "")
+			uri = RealPath(uri) 
+
+			'move back into current dir
+			ChangeDir dir
+
+			If Not FileType(uri)
+				Print "ERROR: Compiler not found: ~q"+uri+"~q"
+				Return False
 			End If
-			
 		EndIf
 
 		' bmxpath is not set, we should try to set it to bmk's root path. (one up from bmk's bin path)

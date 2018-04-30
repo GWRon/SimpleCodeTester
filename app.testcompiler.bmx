@@ -33,25 +33,26 @@ Type TTestCompiler Extends TTestBase
 
 
 	Function SetCompilerURI:Int( uri:String )
-		If Not uri Or FileType(uri) = FILETYPE_NONE
-	
-			If uri Then
-				' try real path
-				Local dir:String = CurrentDir()
-				ChangeDir baseConfig.GetString("test_base", "")
-				uri = RealPath(uri) 
-				ChangeDir dir
-
-				If Not FileType(uri)
-					Print "ERROR: Compiler not found: ~q"+uri+"~q"
-					Return False
-				End If
-			Else
-					Print "ERROR: Compiler was not defined in option 'bmk_path'"
-					Return False
-			End If
-			
+		If Not uri
+			Print "ERROR: Compiler was not defined in option 'bmk_path'"
+			Return False
 		EndIf
+
+		If FileType(uri) = FILETYPE_NONE
+			' try real path
+			Local dir:String = CurrentDir()
+			ChangeDir baseConfig.GetString("test_base", "")
+			uri = RealPath(uri) 
+
+			'move back into current dir
+			ChangeDir dir
+
+			If Not FileType(uri)
+				Print "ERROR: Compiler not found: ~q"+uri+"~q"
+				Return False
+			End If
+		EndIf
+
 
 		' bmxpath is not set, we should try to set it to bmk's root path. (one up from bmk's bin path)
 		If Not baseConfig.GetString("bmxpath", "")
@@ -152,6 +153,8 @@ Type TTestCompiler Extends TTestBase
 		If Not doValidation Then Return True
 
 		Local binaryProcess:TCodeTesterProcess = New TCodeTesterProcess.Init( GetOutputFileURI() )
+		if not binaryProcess then Throw "Validate(): Failed to create new TCodeTesterProcess."
+
 		Local binaryOutput:String = ""
 		While not binaryProcess.Eof()
 			If binaryProcess.IOAvailable()
@@ -172,14 +175,15 @@ Type TTestCompiler Extends TTestBase
 		Wend
 
 		If expectedOutput = binaryOutput
+			validationOutput = "OK"
+
 			validated = True
 			'Print "  VALIDATION SUCCESSFUL"
 			Return True
 		Else
-
-			print "expected:~n-----~n"+expectedOutput+"~n------~n"
-			print "received:~n-----~n"+binaryOutput+"~n------~n"
-
+			validationOutput = "FAILED~n"
+			validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
+			validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
 
 			validated = False
 			'Print "  VALIDATION FAILED"

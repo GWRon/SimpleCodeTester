@@ -32,6 +32,7 @@ Type TCodeTesterProcess
 		Self.flags = flags
 		Self.name = name
 
+		'remove old processes when creating already
 		FlushZombies()
 
 		If runNow Then RunProcess()
@@ -42,6 +43,7 @@ Type TCodeTesterProcess
 	Method Alive:Int()
 		If handle
 			If fdProcessStatus(handle) Then Return True
+			CloseStreams()
 			handle = 0
 		EndIf
 		Return False
@@ -72,16 +74,16 @@ Type TCodeTesterProcess
 
 
 	Method StandardIOAvailable:Int()
-		Return standardIO.bufferpos Or standardIO.readAvail()
+		Return standardIO and (standardIO.bufferpos Or standardIO.readAvail())
 	End Method
 
 
 	Method ErrorIOAvailable:Int()
-		Return errorIO.bufferpos Or errorIO.readAvail()
+		Return errorIO and (errorIO.bufferpos Or errorIO.readAvail())
 	End Method
 
 
-	Method Close()
+	Method CloseStreams()
 		If standardIO
 			standardIO.Close()
 			standardIO = Null
@@ -90,14 +92,19 @@ Type TCodeTesterProcess
 			errorIO.Close()
 			errorIO = Null
 		EndIf
+	End Method
+	
 
-		terminate()
+	Method Close()
+		Terminate()
 
 		If runAfterwards Then runAfterwards.RunProcess()
 	End Method
 
 
 	Method Terminate:Int()
+		CloseStreams()
+
 		Local res:Int
 		If handle
 			res = fdTerminateProcess(handle)
@@ -110,6 +117,9 @@ Type TCodeTesterProcess
 	Method RunProcess:TCodeTesterProcess()
 		Local infd:Int, outfd:Int, errfd:Int
 
+		'remove old processes when running
+		FlushZombies()
+
 		handle = fdProcess(name, Varptr infd, Varptr outfd, Varptr errfd, flags)
 		If Not handle Then Return Null
 
@@ -117,6 +127,9 @@ Type TCodeTesterProcess
 '		errorIO = TPipeStreamUTF8.Create(errfd, outfd)
 		standardIO = TPipeStream.Create(infd, outfd)
 		errorIO = TPipeStream.Create(errfd, outfd)
+
+		if not standardIO then Throw "Failed to create standardIO stream" 
+		if not errorIO then Throw "Failed to create errorIO stream" 
 
 		processes.AddLast(Self)
 		Return Self

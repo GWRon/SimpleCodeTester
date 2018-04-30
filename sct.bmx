@@ -29,8 +29,14 @@ End Rem
 
 
 
+'=== DEFAULT OPTIONS ===
+'if there is no "base.conf" overriding them in the test directory
+
+'uncomment for in-code test directory assignment
+'AppArgs = [AppArgs[0], "../../../Tools/BlitzMaxNG/bin/tests"]
+
 'adjust compiler path for this test class
-TTestCompiler.baseConfig.Add("bmk_path", "/home/ronny/Arbeit/Programmieren/BlitzMax/bin/bmk")
+TTestCompiler.baseConfig.Add("bmk_path", "/path/to/BlitzMaxNG/bin/bmk")
 
 'adjust base config for all instances of that type
 TTestCompiler.baseConfig.Add("app_type", "console")
@@ -42,5 +48,7 @@ TTestCompiler.baseConfig.Add("make_mods", "0")
 TTestCompiler.baseConfig.Add("quick", "0") 
 TTestCompiler.baseConfig.fileUri = "baseConfig"
 
+
+'=== RUN TESTS ===
 Global testManager:TTestManager = New TTestManager.Init(AppArgs[1..])
 testManager.RunTests()

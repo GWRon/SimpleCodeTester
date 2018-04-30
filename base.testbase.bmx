@@ -23,6 +23,7 @@ Type TTestBase
 
 	Field receivedOutput:String = ""
 	Field receivedErrorOutput:String = ""
+	Field validationOutput:String = ""
 	Field expectedOutput:String = ""
 	Field result:Int = 0
 	'one might skip validation of output
@@ -102,12 +103,23 @@ Type TTestBase
 	'check if the test was passed
 	Method Validate:Int()
 
-		If Not doValidation Then Return True
+		If Not doValidation
+			validationOutput = ""
+			Return True
+		EndIf
+
 		'by default we just check if the output corresponds
 		'to one we defined before
 		Print "expected: -"+expectedOutput+"-"
 		Print "received: -"+receivedOutput+"-"
 		validated = (expectedOutput = receivedOutput)
+
+		if validated
+			validationOutput = "OK"
+		else
+			validationOutput = "FAILED"  
+		endif
+		
 		Return validated
 	End Method
 
@@ -125,19 +137,23 @@ Type TTestBase
 
 		If result = RESULT_ERROR
 			text :+ "  -> PROCESS FAILED !" + "~n"
-			text :+ "ERROR MESSAGE>>>" + "~n"
-			'output contains newline char already,skip adding it 
-			text :+ receivedErrorOutput
+			text :+ "  ERROR MESSAGE>>>" + "~n"
+			'output contains newline char already,skip adding it
+			'but add indention
+			text :+ "  " + receivedErrorOutput.Replace("~n", "~n  ") + "~n"
 '			text :+ receivedOutput
-			text :+ "<<<" + "~n"
-		ElseIf result = RESULT_OK
+			text :+ "  <<<" + "~n"
+			return text
+		EndIf
+
+		if doValidation
+			text :+ "  VALIDATION: " + validationOutput.Replace("~n", "~n  ") + "~n"
+		endif
+		
+		If result = RESULT_OK
 			text :+ "  -> OK" + "~n"
 		ElseIf result = RESULT_FAILED
-			If validated = False
-				text :+ "  -> VALIDATION FAILED" + "~n"
-			Else
-				text :+ "  -> FAILED" + "~n"
-			EndIf
+			text :+ "  -> FAILED" + "~n"
 		EndIf
 
 		return text
@@ -154,6 +170,8 @@ Type TTestBase
 	Method Run:Int()
 		'start the process execution
 		process = New TCodeTesterProcess.Init( GetCommandline() )
+		if not process then Throw "Run(): Failed to create new TCodeTesterProcess."
+
 		receivedOutput = ""
 
 		While process.Alive()
