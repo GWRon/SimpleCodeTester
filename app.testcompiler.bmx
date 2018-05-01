@@ -43,7 +43,7 @@ Type TTestCompiler Extends TTestBase
 			' try real path
 			Local dir:String = CurrentDir()
 			ChangeDir baseConfig.GetString("test_base", "")
-			uri = RealPath(uri) 
+			uri = RealPath(uri)
 
 			'move back into current dir
 			ChangeDir dir
@@ -61,14 +61,14 @@ Type TTestCompiler Extends TTestBase
 			Local bmxpath:String = ExtractDir(uri)
 			' parent dir
 			bmxpath = bmxpath[..bmxpath.FindLast("/")]
-			
+
 			If FileType(bmxpath) = FILETYPE_DIR
 				baseConfig.Add("bmxpath", bmxpath)
 				putenv_("BMXPATH=" + bmxpath)
 			End If
-			
+
 		End If
-		
+
 		compilerUri = uri
 		Return True
 	End Function
@@ -130,7 +130,7 @@ Type TTestCompiler Extends TTestBase
 
 	'override generation of the commandline
 	Method GetCommandline:String()
-	
+
 		'try to use a instance specific URI, if none is given
 		'use the default type specific compiler URI
 		Local useCommandURI:String = commandURI
@@ -143,11 +143,11 @@ Type TTestCompiler Extends TTestBase
 			End If
 			useCommandURI = compilerUri
 		End If
-		
+
 		Return usecommandURI + " " + GetParams()
 	End Method
 
-	
+
 	'override Validation to execute the resulting binary
 	'if validation is needed
 	Method Validate:Int()
@@ -158,27 +158,39 @@ Type TTestCompiler Extends TTestBase
 		Local binaryOutput:String = ""
 		local receivedErrorOutput:string
 		local receivedOutput:string
-		While not binaryProcess.Eof()
-			If binaryProcess.IOAvailable()
-				'append output from process if not empty
-				'prepend a newline if needed
-				'last line does not contain newline then !
-				local out:string = binaryProcess.Read()
+		'no need to read in the lines "live", just wait for the output...
+		While binaryProcess.Alive()
+			delay(1)
+		Wend
+		local bytes:byte[] = binaryProcess.standardIO.ReadPipe()
+		if bytes
+			binaryOutput = String.FromBytes(bytes, bytes.length).replace("~r", "")
+			'skip last newline (it somehow gets added during output
+			'(I assume to avoid the following prompt beginning on the
+			' same line)
+			binaryOutput = binaryOutput[.. binaryOutput.length-1]
+		endif
+		rem
+		While binaryProcess.IOAvailable()
+			local out:string = binaryProcess.Read()
+			if out
 				if binaryOutput <> "" then binaryOutput :+ "~n"
 				binaryOutput :+ out
-			EndIf
+			endif
 		Wend
+		endrem
+		binaryProcess.Close()
+		binaryProcess = null
 
-		If expectedOutput = binaryOutput
+		If expectedOutput.length = binaryOutput.length and expectedOutput = binaryOutput
 			validationOutput = "OK"
 
 			validated = True
 			'Print "  VALIDATION SUCCESSFUL"
 			Return True
 		Else
+			'print expectedOutput.length+"  vs  " + binaryOutput.length
 			validationOutput = "FAILED~n"
-'			validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
-'			validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
 
 			local expectedLines:string[] = expectedOutput.split("~n")
 			local binaryLines:string[] = binaryOutput.split("~n")
@@ -203,24 +215,44 @@ Type TTestCompiler Extends TTestBase
 				validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
 			'side by side comparison
 			else
-				validationOutput :+ "   ." + LSet(" EXPECTED", maxExpectedLineLength+2)+"|" + LSet(" RECEIVED", maxBinaryLineLength+2)+".~n"
+				validationOutput :+ "   |" + LSet(" EXPECTED", maxExpectedLineLength+2)+"|" + LSet(" RECEIVED", maxBinaryLineLength+2)+"|~n"
 				validationOutput :+ "---+" + LSet("", maxLineLength+2).Replace(" ", "-") + "+" + LSet("", maxBinaryLineLength+2).Replace(" ", "-")+"+~n"
 				For local i:int = 0 until Max(expectedLines.length, binaryLines.length)
 					local line:string = ""
 					if expectedLines.length > i and binaryLines.length > i
 						if expectedLines[i] <> binaryLines[i]
-							validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2)  +"|~n"
+							local detail:string
+							rem
+							'debug information
+							for local j:int = 0 until Min(expectedLines[i].length, binaryLines[i].length)
+								if expectedLines[i][j] <> binaryLines[i][j]
+									detail :+"@"+j+" ("+expectedLines[i][j]+"<>"+binaryLines[i][j]+") "
+								endif
+							Next
+							detail :+ "  length " + expectedLines[i].length+", "+binaryLines[i].length
+							detail :+ "  chars: "
+							for local j:int = 0 until expectedLines[i].length
+								detail :+ expectedLines[i][j]+" "
+							Next
+							detail :+ "  |  "
+							for local j:int = 0 until binaryLines[i].length
+								detail :+ expectedLines[i][j]+" "
+							Next
+							endrem
+
+							validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2)  +"|"+detail+"~n"
+
 						else
 							validationOutput :+ "OK |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2)  +"|~n"
 						endif
-					elseif expectedLines.length > i			
-						validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset("", maxBinaryLineLength+2)  +"|~n"
+					elseif expectedLines.length > i
+						validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset("", maxBinaryLineLength+2).replace(" ", "#")  +"|~n"
 					else
-						validationOutput :+ "XX |" + LSet("", maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2) +"|~n"
+						validationOutput :+ "XX |" + LSet("", maxLineLength+2).replace(" ", "#")+"|" + Lset(binaryLines[i], maxBinaryLineLength+2) +"|~n"
 					endif
 				Next
 			endif
-			
+
 			validated = False
 			'Print "  VALIDATION FAILED"
 			Return False

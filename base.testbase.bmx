@@ -191,8 +191,6 @@ Type TTestBase
 
 						if receivedErrorOutput <> "" then receivedErrorOutput :+ "~n"
 						receivedErrorOutput :+ errorOutput
-
-						result = RESULT_ERROR
 					endif
 				EndIf
 
@@ -208,6 +206,12 @@ Type TTestBase
 		Wend
 		'if not done yet, finish up
 		process.Close()
+
+
+		if receivedErrorOutput
+			result = RESULT_ERROR
+		endif
+
 
 		'run validation (but skip processing if we already have an error...)
 		If result <> RESULT_ERROR

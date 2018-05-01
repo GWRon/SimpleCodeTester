@@ -59,16 +59,36 @@ Type TCodeTesterProcess
 	End Method
 
 
+	Function StreamHasLine:int(stream:TPipeStream)
+		if stream.bufferPos <= 0 then return False
+		
+		For local n:int = 0 To stream.bufferpos
+			'newline character found?
+			If stream.readbuffer[n] = 10 then return True
+		Next
+		return False
+	End Function
+
+
 	Method Read:String()
 		Local result:String = ""
-		If result="" Then result = ReadErrorIO()
-		If result="" Then result = ReadStandardIO()
+		'prefer errors first?
+		'If result="" Then result = ReadErrorIO()
+		'If result="" Then result = ReadStandardIO()
+
+		'or read them in straight one after another?
+		result :+ ReadErrorIO()
+		result :+ ReadStandardIO()
+
 		Return result
 	End Method
 
 
 	Method ReadStandardIO:String()
 		If StandardIOAvailable()
+			'local hasLine:int = StreamHasLine(standardIO)
+			'if not hasLine then return ""
+			
 			local res:string = standardIO.ReadLine().Replace("~r","") '.Replace("~n","")
 			'read all what's left if app ended without newline
 			if res.length = 0 and not handle then return ReadStreamBuffer(standardIO)
@@ -265,6 +285,18 @@ Type TPipeStreamUTF8 Extends TPipeStream
 		Next
 
 		return result
+	End Method
+
+
+	Method HasLine:int()
+		'fill read buffer with new data (if available)
+		FillBuffer()
+
+		For local n:int = 0 To bufferpos
+			'newline character found?
+			If readbuffer[n] = 10 then return True
+		Next
+		return False
 	End Method
 	
 
