@@ -16,7 +16,7 @@ Import Brl.Threads
 ?
 
 
-Global SCT_VERSION:String = "0.2.0"
+Global SCT_VERSION:String = "0.2.1"
 
 Type TTestManager
 	Field tests:TList = CreateList()

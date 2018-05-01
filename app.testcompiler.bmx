@@ -8,6 +8,7 @@ Rem
 
 ENDREM
 SuperStrict
+Import Brl.Retro
 Import "base.testbase.bmx"
 Import "base.processes.bmx"
 
@@ -176,9 +177,42 @@ Type TTestCompiler Extends TTestBase
 			Return True
 		Else
 			validationOutput = "FAILED~n"
-			validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
-			validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
+'			validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
+'			validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
 
+			local expectedLines:string[] = expectedOutput.split("~n")
+			local binaryLines:string[] = binaryOutput.split("~n")
+			local maxLineLength:int = 0
+			For local i:int = 0 until Max(expectedLines.length, binaryLines.length)
+				if expectedLines.length > i
+					maxLineLength = max(maxLineLength, expectedLines[i].length)
+				endif
+				if binaryLines.length > i
+					maxLineLength = max(maxLineLength, binaryLines[i].length)
+				endif
+			Next
+
+			if maxLineLength > 36
+				validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
+				validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
+			'side by side comparison
+			else
+				For local i:int = 0 until Max(expectedLines.length, binaryLines.length)
+					local line:string = ""
+					if expectedLines.length > i and binaryLines.length > i
+						if expectedLines[i] <> binaryLines[i]
+							validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+" |" + binaryLines[i] +"~n"
+						else
+							validationOutput :+ "OK |" + LSet(expectedLines[i], maxLineLength+2)+" |" + binaryLines[i] +"~n"
+						endif
+					elseif expectedLines.length > i			
+						validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+" |~n"
+					else
+						validationOutput :+ "XX |" + LSet("", maxLineLength+2)+" |" + binaryLines[i] +"~n"
+					endif
+				Next
+			endif
+			
 			validated = False
 			'Print "  VALIDATION FAILED"
 			Return False
