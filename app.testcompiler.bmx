@@ -182,33 +182,41 @@ Type TTestCompiler Extends TTestBase
 
 			local expectedLines:string[] = expectedOutput.split("~n")
 			local binaryLines:string[] = binaryOutput.split("~n")
-			local maxLineLength:int = 0
-			For local i:int = 0 until Max(expectedLines.length, binaryLines.length)
-				if expectedLines.length > i
-					maxLineLength = max(maxLineLength, expectedLines[i].length)
-				endif
-				if binaryLines.length > i
-					maxLineLength = max(maxLineLength, binaryLines[i].length)
-				endif
+			local maxLineLength:int = 10
+			local maxExpectedLineLength:int = 0
+			local maxBinaryLineLength:int = 0
+			For local i:int = 0 until expectedLines.length
+				maxExpectedLineLength = max(maxExpectedLineLength, expectedLines[i].length)
 			Next
+			For local i:int = 0 until binaryLines.length
+				maxBinaryLineLength = max(maxBinaryLineLength, binaryLines[i].length)
+			Next
+			maxLineLength = Max(maxLineLength, max(maxBinaryLineLength, maxExpectedLineLength))
+
+			'at least caption-width
+			maxBinaryLineLength = Max(9, maxBinaryLineLength)
+			maxExpectedLineLength = Max(9, maxExpectedLineLength)
+
 
 			if maxLineLength > 36
 				validationOutput :+ "expected:~n-----~n"+expectedOutput+"~n------~n"
 				validationOutput :+ "received:~n-----~n"+binaryOutput+"~n------~n"
 			'side by side comparison
 			else
+				validationOutput :+ "   ." + LSet(" EXPECTED", maxExpectedLineLength+2)+"|" + LSet(" RECEIVED", maxBinaryLineLength+2)+".~n"
+				validationOutput :+ "---+" + LSet("", maxLineLength+2).Replace(" ", "-") + "+" + LSet("", maxBinaryLineLength+2).Replace(" ", "-")+"+~n"
 				For local i:int = 0 until Max(expectedLines.length, binaryLines.length)
 					local line:string = ""
 					if expectedLines.length > i and binaryLines.length > i
 						if expectedLines[i] <> binaryLines[i]
-							validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+" |" + binaryLines[i] +"~n"
+							validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2)  +"|~n"
 						else
-							validationOutput :+ "OK |" + LSet(expectedLines[i], maxLineLength+2)+" |" + binaryLines[i] +"~n"
+							validationOutput :+ "OK |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2)  +"|~n"
 						endif
 					elseif expectedLines.length > i			
-						validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+" |~n"
+						validationOutput :+ "XX |" + LSet(expectedLines[i], maxLineLength+2)+"|" + Lset("", maxBinaryLineLength+2)  +"|~n"
 					else
-						validationOutput :+ "XX |" + LSet("", maxLineLength+2)+" |" + binaryLines[i] +"~n"
+						validationOutput :+ "XX |" + LSet("", maxLineLength+2)+"|" + Lset(binaryLines[i], maxBinaryLineLength+2) +"|~n"
 					endif
 				Next
 			endif
