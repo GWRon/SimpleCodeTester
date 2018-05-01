@@ -22,14 +22,19 @@ Type TCodeTesterProcess
 	Field runAfterwards:TCodeTesterProcess
 
 
-	Method Init:TCodeTesterProcess( name:String, flags:Int = 0, runNow:Int=True )
+	Method Init:TCodeTesterProcess( name:String, flags:Int = -1, runNow:Int=True )
 ?MacOS
 		If FileType(name+".app")=FILETYPE_DIR
 			Local a:String = StripExt( StripDir(name) )
 			name:+".app/Contents/MacOS/"+a
 		EndIf
 ?
-		Self.flags = flags
+		If flags = -1
+			self.flags = HIDECONSOLE
+		Else
+			Self.flags = flags
+		EndIf
+		
 		Self.name = name
 
 		'remove old processes when creating already
@@ -43,7 +48,6 @@ Type TCodeTesterProcess
 	Method Alive:Int()
 		If handle
 			If fdProcessStatus(handle) Then Return True
-			CloseStreams()
 			handle = 0
 		EndIf
 		Return False
@@ -64,26 +68,62 @@ Type TCodeTesterProcess
 
 
 	Method ReadStandardIO:String()
-		If StandardIOAvailable() Then Return standardIO.ReadLine().Replace("~r","").Replace("~n","")
+		If StandardIOAvailable()
+			local res:string = standardIO.ReadLine().Replace("~r","") '.Replace("~n","")
+			if res.length = 0 then return ReadStreamBuffer(standardIO)
+			return res
+		EndIf
 	End Method
 
 
 	Method ReadErrorIO:String()
-		If ErrorIOAvailable() Then Return errorIO.ReadLine().Replace("~r","").Replace("~n","")
+		If ErrorIOAvailable()
+			local res:string = errorIO.ReadLine().Replace("~r","") '.Replace("~n","")
+			if res.length = 0 then return ReadStreamBuffer(errorIO)
+			return res
+		EndIf
 	End Method
 
 
 	Method StandardIOAvailable:Int()
-		Return standardIO and (standardIO.bufferpos Or standardIO.readAvail())
+		'readAvail() returns the number of bytes "to fetch"
+		'bufferPos describes what was already fetched but not "read" yet
+		Return standardIO and (standardIO.readAvail() or standardIO.bufferPos > 0)
 	End Method
 
 
 	Method ErrorIOAvailable:Int()
-		Return errorIO and (errorIO.bufferpos Or errorIO.readAvail())
+		Return errorIO and (errorIO.readAvail() or errorIO.bufferPos > 0)
+	End Method
+
+
+	Method ReadStreamBuffer:string(stream:TPipeStream)
+		local result:string
+		local n:int = stream.bufferPos
+		local p1:int = n
+		If (n>0)
+			If stream.readbuffer[n-1] = 13
+				p1 = n-1
+			EndIf
+		EndIf
+
+		local p0:int = 0
+		If stream.readbuffer[0] = 13
+			p0 = 1
+		EndIf
+
+		If p1>p0
+			result = String.FromBytes(Varptr stream.readbuffer[p0],p1-p0)
+		EndIf
+		
+		stream.bufferPos = 0
+
+		return result
 	End Method
 
 
 	Method CloseStreams()
+		'print "CloseStreams() - name: " + name
 		If standardIO
 			standardIO.Close()
 			standardIO = Null
@@ -115,6 +155,7 @@ Type TCodeTesterProcess
 
 
 	Method RunProcess:TCodeTesterProcess()
+		'print "RunProcess: "+processes.Count()+" processes still running."
 		Local infd:Int, outfd:Int, errfd:Int
 
 		'remove old processes when running
@@ -139,14 +180,20 @@ Type TCodeTesterProcess
 	Function FlushZombies()
 		Local aliveList:TList = CreateList()
 		For Local p:TCodeTesterProcess = EachIn processes
-			If p.Alive() Then aliveList.AddLast p
+			If p.Alive()
+				aliveList.AddLast p
+			else
+				p.Terminate()
+			endif
 		Next
 		processes = aliveList
 	End Function
 
 
 	Method Eof:Int()
+		'process alive, so might still output something 
 		If Alive() Then Return False
+		'still something to read?
 		If IOAvailable() Then Return False
 		Return True
 	End Method

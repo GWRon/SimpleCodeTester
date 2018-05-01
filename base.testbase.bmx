@@ -161,6 +161,7 @@ Type TTestBase
 
 
 	'checks if the given string is an error
+	'- eg. they need an "[ERROR:" at start
 	Method IsErrorLine:Int(line:string)
 		if line.Trim() = "" then return False
 		Return True
@@ -169,12 +170,12 @@ Type TTestBase
 
 	Method Run:Int()
 		'start the process execution
-		process = New TCodeTesterProcess.Init( GetCommandline() )
+		process = New TCodeTesterProcess.Init( GetCommandline(), HIDECONSOLE )
 		if not process then Throw "Run(): Failed to create new TCodeTesterProcess."
 
 		receivedOutput = ""
 
-		While process.Alive()
+		While not process.Eof() 'alive or having some output to process
 			If process.IOAvailable()
 				'append output from process if not empty
 				'prepend a newline if needed
@@ -184,7 +185,7 @@ Type TTestBase
 				'as soon as an error happens - set the result accordingly
 				If process.ErrorIOAvailable()
 					local errorOutput:string = process.ReadErrorIO()
-					
+
 					If IsErrorLine(errorOutput)
 						processOutput :+ errorOutput
 
@@ -203,21 +204,20 @@ Type TTestBase
 					if receivedOutput <> "" then receivedOutput :+ "~n"
 					receivedOutput:+ processOutput
 				endif
-
-				'add new line indicator for followup lines
-				'If receivedOutput <> "" Then receivedOutput:+"~n"
-				'receivedOutput :+ process.Read()
 			EndIf
 		Wend
+		'if not done yet, finish up
+		process.Close()
 
-		If result = RESULT_ERROR then return False
+		'run validation (but skip processing if we already have an error...)
+		If result <> RESULT_ERROR
+			'maybe someone wants to receive additional information from
+			'the received text
+			ProcessOutput()
 
-		'maybe someone wants to receive additional information from
-		'the received text
-		ProcessOutput()
-
-		'run validation of the output
-		If Validate() Then result = RESULT_OK Else result = RESULT_FAILED
+			'run validation of the output
+			If Validate() Then result = RESULT_OK Else result = RESULT_FAILED
+		EndIf
 
 		'run cleanup - eg removing temporary files
 		CleanUp()

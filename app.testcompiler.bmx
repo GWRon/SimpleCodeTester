@@ -146,31 +146,25 @@ Type TTestCompiler Extends TTestBase
 		Return usecommandURI + " " + GetParams()
 	End Method
 
-
+	
 	'override Validation to execute the resulting binary
 	'if validation is needed
 	Method Validate:Int()
 		If Not doValidation Then Return True
-
-		Local binaryProcess:TCodeTesterProcess = New TCodeTesterProcess.Init( GetOutputFileURI() )
+		Local binaryProcess:TCodeTesterProcess = New TCodeTesterProcess.Init( GetOutputFileURI(), HIDECONSOLE)
 		if not binaryProcess then Throw "Validate(): Failed to create new TCodeTesterProcess."
 
 		Local binaryOutput:String = ""
+		local receivedErrorOutput:string
+		local receivedOutput:string
 		While not binaryProcess.Eof()
 			If binaryProcess.IOAvailable()
 				'append output from process if not empty
 				'prepend a newline if needed
 				'last line does not contain newline then !
 				local out:string = binaryProcess.Read()
-'do not ignore newlines - which somehow are triggered with out <> ""
-'				If out <> ""
-					if binaryOutput <> "" then binaryOutput :+ "~n"
-					binaryOutput :+ out
-'				endif
-
-				'old: add new line indicator for followup lines
-				'If binaryOutput <> "" Then binaryOutput:+"~n"
-				'binaryOutput :+ binaryProcess.Read()
+				if binaryOutput <> "" then binaryOutput :+ "~n"
+				binaryOutput :+ out
 			EndIf
 		Wend
 
