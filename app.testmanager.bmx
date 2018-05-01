@@ -16,7 +16,7 @@ Import Brl.Threads
 ?
 
 
-Global SCT_VERSION:String = "0.1.0"
+Global SCT_VERSION:String = "0.2.0"
 
 Type TTestManager
 	Field tests:TList = CreateList()
@@ -96,8 +96,25 @@ Type TTestManager
 		Local test:TTestCompiler
 		For Local testFile:String = EachIn testFiles
 			test = New TTestCompiler.Init(testFile).SetCompileFile(testFile)
+
 			'try to load the expected result file
-			test.SetExpectedOutput( test.LoadExpectedOutput(StripExt(testFile) + ".res") )
+			'prefer OS/arch specific result files
+			local testFileBase:string = StripExt(testFile)
+			local arch:string = TTestCompiler.baseConfig.GetString("app_arch", "x86")
+			?win32
+			local OS:string = "win32"
+			?linux
+			local OS:string = "linux"
+			?macos
+			local OS:string = "macos"
+			?
+			if FileType(testFileBase+"." + OS + "." + arch + ".res") = FILETYPE_FILE
+				test.SetExpectedOutput( test.LoadExpectedOutput(testFileBase + "." + OS + "." + arch + ".res") )
+			Elseif FileType(testFileBase + "." + OS + ".res") = FILETYPE_FILE
+				test.SetExpectedOutput( test.LoadExpectedOutput(testFileBase + "." + OS + ".res") )
+			Elseif FileType(testFileBase + ".res") = FILETYPE_FILE
+				test.SetExpectedOutput( test.LoadExpectedOutput(testFileBase + ".res") )
+			EndIf
 
 			'try to find a configuration for this test
 			test.config = GetInheritedConfig( StripAll(testFile) + ".conf", directory, ExtractDir(testFile) )
@@ -303,7 +320,7 @@ Type TTestManager
 	End Method
 	
 	Method ShowVersion()
-		Print "sct version " + SCT_VERSION
+		Print "SimpleCodeTester (sct) version " + SCT_VERSION
 		End
 	End Method
 	
