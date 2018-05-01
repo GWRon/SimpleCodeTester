@@ -156,8 +156,6 @@ Type TTestCompiler Extends TTestBase
 		if not binaryProcess then Throw "Validate(): Failed to create new TCodeTesterProcess."
 
 		Local binaryOutput:String = ""
-		local receivedErrorOutput:string
-		local receivedOutput:string
 		'no need to read in the lines "live", just wait for the output...
 		While binaryProcess.Alive()
 			delay(1)

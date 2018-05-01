@@ -1,4 +1,5 @@
 ﻿SuperStrict
+Import Brl.Retro
 Import "base.configmap.bmx"
 Import "base.processes.bmx"
 
@@ -46,8 +47,8 @@ Type TTestBase
 	Method GetName:String()
 		Return name
 	End Method
-	
-	
+
+
 	Method GetTestType:String()
 		Return "TEST"
 	End Method
@@ -117,22 +118,24 @@ Type TTestBase
 		if validated
 			validationOutput = "OK"
 		else
-			validationOutput = "FAILED"  
+			validationOutput = "FAILED"
 		endif
-		
+
 		Return validated
 	End Method
 
 
-	Method GetFormattedHeader:String()
+	Method GetFormattedHeader:String(verbose:int = False)
 		local text:string
 		text :+ "* RUNNING " + GetTestType() + ": " + GetName() + "~n"
-		text :+ "  COMMAND: "+ GetCommandline()
+		if verbose
+			text :+ "  COMMAND: "+ GetCommandline()
+		endif
 		return text
 	End Method
 
 
-	Method GetFormattedResult:String()
+	Method GetFormattedResult:String(verbose:int = False)
 		local text:string
 
 		If result = RESULT_ERROR
@@ -149,7 +152,7 @@ Type TTestBase
 		if doValidation
 			text :+ "  VALIDATION: " + validationOutput.Replace("~n", "~n  ") + "~n"
 		endif
-		
+
 		If result = RESULT_OK
 			text :+ "  -> OK" + "~n"
 		ElseIf result = RESULT_FAILED
@@ -165,6 +168,29 @@ Type TTestBase
 	Method IsErrorLine:Int(line:string)
 		if line.Trim() = "" then return False
 		Return True
+	End Method
+
+
+	Method GetErrorSummary:string()
+		if not receivedErrorOutput then return ""
+
+		local result:string
+		local lines:string[] = receivedErrorOutput.split("~n")
+		local filename:string = StripDir(name) 'name contains file name
+		local foundFileLine:int = False
+		For local i:int = 0 until lines.length
+			if lines[i].Find("[") = 0
+				local filePos:int = lines[i].Find(filename+";")
+				if filePos > 0
+					result = "["+Right(lines[i], (lines[i].length - filePos) - filename.length - 1) + "  (" + result + ")"
+					foundFileLine = True
+				endif
+			endif
+			if not foundFileLine
+				result :+ lines[i]
+			endif
+		Next
+		return result
 	End Method
 
 

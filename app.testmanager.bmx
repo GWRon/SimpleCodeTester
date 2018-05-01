@@ -26,7 +26,8 @@ Type TTestManager
 	Global testsDoneMutex:TMutex = CreateMutex()
 ?
 	Field dirTree:TDirectoryTree = New TDirectoryTree
-	
+	Field verbose:int
+
 	Field mods:TList = New TList
 
 
@@ -123,29 +124,29 @@ Type TTestManager
 		Next
 	End Method
 
-	
+
 	Method BuildMods()
 
 		Print "=== STARTING MODULE BUILD ==="
 
 		If LoadMods()
 			Local config:TConfigMap = New TConfigMap.Init(TTestCompiler.baseConfig.GetString("test_base", "")+"/base.conf")
-			
+
 			For Local m:String = EachIn mods
 				Local build:TTestModCompiler = New TTestModCompiler.Init(m).SetCompileFile(m)
 				build.config = config
-				print build.GetFormattedHeader()
+				print build.GetFormattedHeader(verbose)
 				build.Run()
-				print build.GetFormattedResult()
+				print build.GetFormattedResult(verbose)
 			Next
 		Else
 			Print "* No modules to process *"
-		End If	
+		End If
 
 		Print "=== FINISHED MODULE BUILD ==="
 	End Method
-	
-	
+
+
 	Method LoadMods:Int()
 		Local file:TStream = ReadFile(TTestCompiler.baseConfig.GetString("test_base", "") + "/mods.conf")
 		If Not file Then Return False
@@ -156,10 +157,10 @@ Type TTestManager
 				mods.AddLast(line.ToLower())
 			End If
 		Wend
-		
+
 		Return mods.Count() > 0
 	End Method
-	
+
 
 ?Threaded
 	'helper function
@@ -180,7 +181,7 @@ Type TTestManager
 		If TTestCompiler.baseConfig.GetInt("make_mods") Then
 			BuildMods()
 		End If
-	
+
 		Print "=== STARTING TESTS ==="
 		Print "* AMOUNT OF TESTS: " + tests.count()
 
@@ -233,8 +234,8 @@ Type TTestManager
 				If testsDone.count() > 0
 					LockMutex(testsDoneMutex)
 						For local test:TTestBase = EachIn testsDone
-							print test.GetFormattedHeader()
-							print test.GetFormattedResult()
+							print test.GetFormattedHeader(verbose)
+							print test.GetFormattedResult(verbose)
 						Next
 						testsDone.Clear()
 					UnlockMutex(testsDoneMutex)
@@ -243,19 +244,33 @@ Type TTestManager
 				delay(1)
 			Wend
 			print "finished"
-			
+
 		?not Threaded
 			For Local test:TTestBase = EachIn tests
-				print test.GetFormattedHeader()
+				print test.GetFormattedHeader(verbose)
 				test.Run()
-				print test.GetFormattedResult()
+				print test.GetFormattedResult(verbose)
 			Next
 		?
 
 		Print "=== FINISHED TESTS ==="
 		Print "* TIME: "+ (Millisecs() - start)+"ms"
 		Print "* FAILED: "+ GetResultCount(TTestBase.RESULT_FAILED)
+		if verbose
+			for local t:TTestBase = EachIn tests
+				if t.result = TTestBase.RESULT_FAILED
+					print "    " + t.name
+				endif
+			Next
+		endif
 		Print "* ERROR: "+ GetResultCount(TTestBase.RESULT_ERROR)
+		if verbose
+			for local t:TTestBase = EachIn tests
+				if t.result = TTestBase.RESULT_ERROR
+					print "    " + t.name + t.GetErrorSummary()
+				endif
+			Next
+		endif
 		Print "* OK: "+ GetResultCount(TTestBase.RESULT_OK)
 	End Method
 
@@ -269,23 +284,23 @@ Type TTestManager
 		Return count
 	End Method
 
-	
+
 	Method ParseArgs(args:String[])
-	
+
 		Local count:Int
-		
+
 		If args.length = 0 Then
 			ShowUsage()
 		End If
-	
+
 		While count < args.length
-		
+
 			Local arg:String = args[count]
-			
+
 			If arg[..1] <> "-" Then
 				Exit
 			End If
-			
+
 			Select arg[1..]
 				Case "h"
 					ShowUsage()
@@ -293,37 +308,39 @@ Type TTestManager
 					ShowVersion()
 				Case "m"
 					TTestCompiler.baseConfig.Add("make_mods", "1")
+				Case "verbose"
+					verbose = True
 			End Select
-			
+
 			count:+ 1
 		Wend
-		
+
 		args = args[count..]
-		
+
 		If args.length = 0
 			Print "Test directory missing from command line."
 			End
 		End If
-		
+
 		' store real path of tests
 		TTestCompiler.baseConfig.Add("test_base", RealPath(args[0]))
-		
+
 		AddTestsFromDirectory(args[0])
 	End Method
 
 	Method ShowUsage()
-		Print "usage : sct [-h] [-v] [-m] dir"
+		Print "usage : sct [-h] [-v] [-m] [-verbose] dir"
 		Print "   -h    Show this help"
 		Print "   -v    Version information"
 		Print "   -m    Build modules first. Reads mods.conf for a list of mods to build."
 		End
 	End Method
-	
+
 	Method ShowVersion()
 		Print "SimpleCodeTester (sct) version " + SCT_VERSION
 		End
 	End Method
-	
+
 End Type
 
 
