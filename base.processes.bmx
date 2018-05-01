@@ -70,7 +70,8 @@ Type TCodeTesterProcess
 	Method ReadStandardIO:String()
 		If StandardIOAvailable()
 			local res:string = standardIO.ReadLine().Replace("~r","") '.Replace("~n","")
-			if res.length = 0 then return ReadStreamBuffer(standardIO)
+			'read all what's left if app ended without newline
+			if res.length = 0 and not handle then return ReadStreamBuffer(standardIO)
 			return res
 		EndIf
 	End Method
@@ -79,7 +80,8 @@ Type TCodeTesterProcess
 	Method ReadErrorIO:String()
 		If ErrorIOAvailable()
 			local res:string = errorIO.ReadLine().Replace("~r","") '.Replace("~n","")
-			if res.length = 0 then return ReadStreamBuffer(errorIO)
+			'read all what's left if app ended without newline
+			if res.length = 0 and not handle then return ReadStreamBuffer(errorIO)
 			return res
 		EndIf
 	End Method
