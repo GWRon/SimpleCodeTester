@@ -16,7 +16,7 @@ Import Brl.Threads
 ?
 
 
-Global SCT_VERSION:String = "0.2.1"
+Global SCT_VERSION:String = "0.2.2"
 
 Type TTestManager
 	Field tests:TList = CreateList()
@@ -87,6 +87,7 @@ Type TTestManager
 		'create a new directory tree containing all files/dirs of
 		'interest for us
 		dirTree = New TDirectoryTree.Init(directory, ["bmx", "conf", "res"], Null, ["*"], [".bmx"])
+		dirTree.relativePaths = False
 		dirTree.ScanDir()
 
 

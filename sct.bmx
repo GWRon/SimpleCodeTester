@@ -33,12 +33,10 @@ End Rem
 'if there is no "base.conf" overriding them in the test directory
 
 'uncomment for in-code test directory assignment
-AppArgs = [AppArgs[0], "../../../Tools/BlitzMaxNG/bin/tests"]
 'AppArgs = [AppArgs[0], "../../../Tools/BlitzMaxNG/bin/tests/test"]
 
 'adjust compiler path for this test class
 TTestCompiler.baseConfig.Add("bmk_path", "/path/to/BlitzMaxNG/bin/bmk")
-'TTestCompiler.baseConfig.Add("bmk_path", "../../../../BlitzMaxNG/bin/bmk")
 
 'adjust base config for all instances of that type
 TTestCompiler.baseConfig.Add("app_type", "console")
@@ -46,8 +44,8 @@ TTestCompiler.baseConfig.Add("app_arch", "x86") 'unused yet
 TTestCompiler.baseConfig.Add("debug", "0")
 TTestCompiler.baseConfig.Add("threaded", "0")
 TTestCompiler.baseConfig.Add("deleteBinaries", "1") 'delete binaries afterwards
-TTestCompiler.baseConfig.Add("make_mods", "0") 
-TTestCompiler.baseConfig.Add("quick", "0") 
+TTestCompiler.baseConfig.Add("make_mods", "0")
+TTestCompiler.baseConfig.Add("quick", "0")
 TTestCompiler.baseConfig.fileUri = "baseConfig"
 
 
