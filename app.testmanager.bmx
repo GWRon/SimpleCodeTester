@@ -178,7 +178,7 @@ Type TTestManager
 ?
 
 	Method RunTests:Int()
-		local start:int = Millisecs()
+		Local start:Int = MilliSecs()
 		If TTestCompiler.baseConfig.GetInt("make_mods") Then
 			BuildMods()
 		End If
@@ -186,92 +186,104 @@ Type TTestManager
 		Print "=== STARTING TESTS ==="
 		Print "* AMOUNT OF TESTS: " + tests.count()
 
-		?Threaded
-			'run up to 4 concurrent Threads
-			local maxThreads:int = 4
-			local threads:TThread[maxThreads]
-			local testsToRun:TList = CreateList()
-			'remove results from last test run (if any)
-			testsDone.clear()
+		Local threadsEnabled:Int = TTestCompiler.baseConfig.GetInt("threadedTestRuns")
+		?Not threaded
+			threadsEnabled = False
+		?
+		
+		If threadsEnabled
+			?Threaded
+				For Local test:TTestBase = EachIn tests
+					Print test.GetFormattedHeader(verbose)
+					test.Run()
+					Print test.GetFormattedResult(verbose)
+				Next
+						
+				'run up to 4 concurrent Threads
+				Local maxThreads:Int = 4
+				Local threads:TThread[maxThreads]
+				Local testsToRun:TList = CreateList()
+				'remove results from last test run (if any)
+				testsDone.clear()
 
-			'copy existing tests into a new list which can get
-			'truncated later
-			For Local test:TTestBase = Eachin tests
-				testsToRun.AddLast(test)
-			Next
-
-			'repeat as long as there are tests to do
-			local allDone:int = (testsToRun.Count() = 0)
-			while not allDone
-				If testsToRun.Count() > 0
-					local useSlot:int = -1
-					'find a free thread slot
-					For local i:int = 0 until maxThreads
-						if not threads[i] then useSlot = i;exit
-						if not ThreadRunning(threads[i]) then useSlot = i;exit
-					Next
-					'wait a short time and try again
-					If useSlot = -1
-						delay(1)
-						continue
-					EndIf
-
-					'kick off a new thread
-					local test:TTestBase = TTestBase(testsToRun.First())
-					testsToRun.RemoveFirst()
-					threads[useSlot] = CreateThread(RunTestThread, test)
-				EndIf
-
-				'adjust allDone to potentially finish the whileloop
-				allDone = (testsToRun.Count() = 0)
-
-				'check if there are no threads running anymore
-				For local i:int = 0 until maxThreads
-					if not threads[i] then continue
-					if ThreadRunning(threads[i]) then allDone = False
+				'copy existing tests into a new list which can get
+				'truncated later
+				For Local test:TTestBase = EachIn tests
+					testsToRun.AddLast(test)
 				Next
 
-				'check if there is some output available
-				If testsDone.count() > 0
-					LockMutex(testsDoneMutex)
-						For local test:TTestBase = EachIn testsDone
-							print test.GetFormattedHeader(verbose)
-							print test.GetFormattedResult(verbose)
+				'repeat as long as there are tests to do
+				Local allDone:Int = (testsToRun.Count() = 0)
+				While Not allDone
+					If testsToRun.Count() > 0
+						Local useSlot:Int = -1
+						'find a free thread slot
+						For Local i:Int = 0 Until maxThreads
+							If Not threads[i] Then useSlot = i;Exit
+							If Not ThreadRunning(threads[i]) Then useSlot = i;Exit
 						Next
-						testsDone.Clear()
-					UnlockMutex(testsDoneMutex)
-				EndIf
+						'wait a short time and try again
+						If useSlot = -1
+							Delay(1)
+							Continue
+						EndIf
 
-				delay(1)
-			Wend
-			print "finished"
+						'kick off a new thread
+						Local test:TTestBase = TTestBase(testsToRun.First())
+						testsToRun.RemoveFirst()
+						threads[useSlot] = CreateThread(RunTestThread, test)
+					EndIf
 
-		?not Threaded
+					'adjust allDone to potentially finish the whileloop
+					allDone = (testsToRun.Count() = 0)
+
+					'check if there are no threads running anymore
+					For Local i:Int = 0 Until maxThreads
+						If Not threads[i] Then Continue
+						If ThreadRunning(threads[i]) Then allDone = False
+					Next
+
+					'check if there is some output available
+					If testsDone.count() > 0
+						LockMutex(testsDoneMutex)
+							For Local test:TTestBase = EachIn testsDone
+								Print test.GetFormattedHeader(verbose)
+								Print test.GetFormattedResult(verbose)
+							Next
+							testsDone.Clear()
+						UnlockMutex(testsDoneMutex)
+					EndIf
+
+					Delay(1)
+				Wend
+				Print "finished"
+			?
+		Else
 			For Local test:TTestBase = EachIn tests
-				print test.GetFormattedHeader(verbose)
+				Print test.GetFormattedHeader(verbose)
 				test.Run()
-				print test.GetFormattedResult(verbose)
+				Print test.GetFormattedResult(verbose)
 			Next
-		?
+		EndIf
 
 		Print "=== FINISHED TESTS ==="
-		Print "* TIME: "+ (Millisecs() - start)+"ms"
+		Print "* TIME: "+ (MilliSecs() - start)+"ms"
 		Print "* FAILED: "+ GetResultCount(TTestBase.RESULT_FAILED)
-		if verbose
-			for local t:TTestBase = EachIn tests
-				if t.result = TTestBase.RESULT_FAILED
-					print "    " + t.name
-				endif
+		If verbose
+			For Local t:TTestBase = EachIn tests
+				If t.result = TTestBase.RESULT_FAILED
+					Print "    " + t.name
+				EndIf
 			Next
-		endif
+		EndIf
 		Print "* ERROR: "+ GetResultCount(TTestBase.RESULT_ERROR)
-		if verbose
-			for local t:TTestBase = EachIn tests
-				if t.result = TTestBase.RESULT_ERROR
-					print "    " + t.name + t.GetErrorSummary()
-				endif
+		If verbose
+			For Local t:TTestBase = EachIn tests
+				If t.result = TTestBase.RESULT_ERROR
+					Print "    " + t.name + t.GetErrorSummary()
+				EndIf
 			Next
-		endif
+		EndIf
 		Print "* OK: "+ GetResultCount(TTestBase.RESULT_OK)
 	End Method
 
