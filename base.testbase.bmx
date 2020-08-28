@@ -76,14 +76,16 @@ Type TTestBase
 		If Not file Then Return ""
 
 		Local content:String = ""
+		Local line:Int
 		While Not Eof(file)
-			If content
+			If line > 0
 				content :+ "~n"
 			End If
 			content :+ ReadLine(file)
+			line :+ 1
 		Wend
 
-		return content
+		Return content
 	End Function
 
 
