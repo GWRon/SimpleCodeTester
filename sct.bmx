@@ -17,7 +17,7 @@ Rem
 	So this is allowed and gets used:
 	sampletests/base.conf
 	sampletests/mytest/mytestA.conf
-	sampletests/mytest/mytestA.bmx <- uses mytest.conf
+	sampletests/mytest/mytestA.bmx <- uses mytestA.conf
 	sampletests/mytest/mytestB.bmx <- uses ../base.conf
 	sampletests/mytest2/base.conf
 	sampletests/mytest2/mytestA.bmx <- uses base.conf
