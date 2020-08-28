@@ -39,6 +39,7 @@ End Rem
 TTestCompiler.baseConfig.Add("bmk_path", "/path/to/BlitzMaxNG/bin/bmk")
 
 'adjust base config for all instances of that type
+TTestCompiler.baseConfig.Add("threadedTestRuns", "0")
 TTestCompiler.baseConfig.Add("app_type", "console")
 TTestCompiler.baseConfig.Add("app_arch", "x86") 'unused yet
 TTestCompiler.baseConfig.Add("debug", "0")
