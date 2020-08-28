@@ -106,7 +106,8 @@ Type TTestModCompiler Extends TTestBase
 	'override to allow 
 	Method IsErrorLine:Int(line:string)
 		'this is no true error
-		If line.Find("ar: creating") >= 0 then return False
+        'eg. ar: Erzeugen von /path/to/BlitzMax/mod/pub.mod/oggvorbis.mod/oggvorbis.release.linux.x64.a
+		If line.Find("ar:") >= 0 and line.Find("/mod/") >= 0 and line.EndsWith(".a") then return False
 
 		Return Super.IsErrorLine(line)
 	End Method

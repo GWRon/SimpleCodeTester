@@ -167,8 +167,14 @@ Type TTestBase
 
 	'checks if the given string is an error
 	'- eg. they need an "[ERROR:" at start
-	Method IsErrorLine:Int(line:string)
-		if line.Trim() = "" then return False
+	Method IsErrorLine:Int(line:String)
+		If line.Trim() = "" Then Return False
+
+		'this is no true error
+        'as bmk might auto-compile some modules
+        'eg. ar: Erzeugen von /path/to/BlitzMax/mod/pub.mod/oggvorbis.mod/oggvorbis.release.linux.x64.a
+		If line.Find("ar:") >= 0 and line.Find("/mod/") >= 0 and line.EndsWith(".a") then return False
+
 		Return True
 	End Method
 
