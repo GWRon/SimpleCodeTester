@@ -15,7 +15,7 @@ Type TCodeTesterProcess
 	Global processes:TList = CreateList()
 
 	Field name:String
-	Field handle:Int
+	Field handle:Size_T
 	Field standardIO:TPipeStream
 	Field errorIO:TPipeStream
 	Field flags:Int = 0
@@ -178,7 +178,7 @@ Type TCodeTesterProcess
 
 	Method RunProcess:TCodeTesterProcess()
 		'print "RunProcess: "+processes.Count()+" processes still running."
-		Local infd:Int, outfd:Int, errfd:Int
+		Local infd:Size_T, outfd:Size_T, errfd:Size_T
 
 		'remove old processes when running
 		FlushZombies()
@@ -326,7 +326,7 @@ Type TPipeStreamUTF8 Extends TPipeStream
 				n:+1
 				bufferpos:-n
 
-				If bufferpos then MemMove(readbuffer, Varptr readbuffer[n], bufferpos)
+				If bufferpos then MemMove(readbuffer, Varptr readbuffer[n], Size_T(bufferpos))
 				Return line
 			EndIf
 		Next		
